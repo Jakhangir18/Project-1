@@ -1,6 +1,6 @@
 import { BaseLayer } from './Layer';
 import { BlockRenderer } from './BlockRenderer';
-import { WeatherMood } from './types';
+import { WeatherMood, WeatherState } from './types';
 
 /**
  * WaterLayer — A horizontal river/lake strip with shimmer animation.
@@ -10,7 +10,7 @@ export class WaterLayer extends BaseLayer {
     private blockSize: number = 16;
     private assemblyTime: number = 0;
 
-    setWeather(state: any) {
+    setWeather(state: WeatherState) {
         const oldMood = this.state?.mood;
         super.setWeather(state);
         if (oldMood !== state.mood) {
@@ -33,8 +33,6 @@ export class WaterLayer extends BaseLayer {
         if (assemblyT <= 0) return;
 
         const waterY = this.height * 0.75;
-        const waterHeight = this.blockSize * 3;
-
         const palette = this.getWaterColors(this.state.mood);
         const cols = Math.ceil(this.width / this.blockSize);
 
