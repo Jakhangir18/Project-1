@@ -1,6 +1,6 @@
 import { BaseLayer } from './Layer';
 import { BlockRenderer } from './BlockRenderer';
-import { WeatherMood } from './types';
+import { WeatherMood, WeatherState } from './types';
 
 /**
  * TerrainLayer — Multi-layer ground with grass/dirt/stone block types
@@ -37,7 +37,7 @@ export class TerrainLayer extends BaseLayer {
         this.generateTerrain(width);
     }
 
-    setWeather(state: any) {
+    setWeather(state: WeatherState) {
         const oldMood = this.state?.mood;
         super.setWeather(state);
         if (oldMood !== state.mood || this.columns.length === 0) {
