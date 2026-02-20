@@ -75,8 +75,6 @@ export default function WeatherCanvas({ weather, className, isZoomedOut }: Weath
         if (!fireflySystemRef.current || !canvasRef.current) return;
 
         const rect = canvasRef.current.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (canvasRef.current.width / rect.width); // Scale to canvas coords
-        const y = (e.clientY - rect.top) * (canvasRef.current.height / rect.height);
 
         // We need to account for DPR if the system uses it.
         // World.ts handles DPR by scaling context, but logical coords might be different.
@@ -92,9 +90,8 @@ export default function WeatherCanvas({ weather, className, isZoomedOut }: Weath
         // So mouse event (CSS pixels) should match logical coords directly.
 
         const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
 
-        const hit = fireflySystemRef.current.checkHit(mouseX, mouseY);
+        const hit = fireflySystemRef.current.checkHit(mouseX);
 
         if (hit) {
             setHoveredCommit({
@@ -109,7 +106,7 @@ export default function WeatherCanvas({ weather, className, isZoomedOut }: Weath
         }
     };
 
-    const handleClick = (e: React.MouseEvent) => {
+    const handleClick = () => {
         // If clicked on firefly, maybe lock tooltip or open link?
         // Request: "Clicking a dot reveals a tooltip". 
         // Hover is usually enough for desktop, click for mobile.
