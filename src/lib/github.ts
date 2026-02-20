@@ -1,82 +1,113 @@
 import { CommitData, CommitType, WeatherMood, WeatherState } from './engine/types';
 
-// Simple cache to avoid hitting rate limits too hard during dev
 const cache: Record<string, WeatherState> = {};
 
-export async function fetchWeather(repo: string): Promise<WeatherState> {
-    if (cache[repo]) return cache[repo];
+export async function fetchWeather(username: string): Promise<WeatherState> {
+    const key = username.toLowerCase().trim();
+    if (cache[key]) return cache[key];
 
-    try {
-        const response = await fetch(`https://api.github.com/repos/${repo}/commits?per_page=100`);
-        if (!response.ok) throw new Error('Repo not found');
+    // Step 1: Check user exists
+    const userRes = await fetch(`https://api.github.com/users/${key}`, {
+        headers: { 'Accept': 'application/vnd.github.v3+json' }
+    });
 
-        const data = await response.json();
+    if (userRes.status === 404) throw new Error(`User "${username}" not found on GitHub`);
+    if (userRes.status === 403) throw new Error('GitHub rate limit hit. Wait 1 minute and try again.');
+    if (!userRes.ok) throw new Error('GitHub API error');
 
-        const commits: CommitData[] = data.map((c: any) => ({
-            sha: c.sha,
-            message: c.commit.message,
-            date: c.commit.author.date,
-            type: classifyCommit(c.commit.message),
-            author: c.commit.author.name
-        }));
+    // Step 2: Fetch public events (gives us commit data per user)
+    const eventsRes = await fetch(
+        `https://api.github.com/users/${key}/events/public?per_page=100`,
+        { headers: { 'Accept': 'application/vnd.github.v3+json' } }
+    );
 
-        const mood = analyzeMood(commits);
+    if (!eventsRes.ok) throw new Error('Could not fetch events');
 
-        const state = {
-            repoName: repo,
-            commits,
-            mood
-        };
+    const events = await eventsRes.json();
 
-        cache[repo] = state;
-        return state;
+    // Step 3: Extract commits from PushEvents only
+    const commits: CommitData[] = [];
 
-    } catch (error) {
-        console.error(error);
-        // Fallback or rethrow
-        throw error;
+    for (const event of events) {
+        if (event.type !== 'PushEvent') continue;
+        for (const c of (event.payload?.commits ?? [])) {
+            commits.push({
+                sha: c.sha ?? '',
+                message: c.message ?? '',
+                date: event.created_at,
+                type: classifyCommit(c.message ?? ''),
+                author: event.actor?.login ?? username,
+            });
+        }
     }
+
+    const seed = hashUsername(key);
+    const mood = analyzeMood(commits, events.length);
+
+    const state: WeatherState = {
+        repoName: key,
+        commits,
+        mood,
+        seed,
+    };
+
+    cache[key] = state;
+    return state;
+}
+
+// Same username always → same world (deterministic)
+export function hashUsername(username: string): number {
+    let hash = 5381;
+    for (let i = 0; i < username.length; i++) {
+        hash = (hash * 33) ^ username.charCodeAt(i);
+    }
+    return Math.abs(hash);
+}
+
+export function seededRandom(seed: number, index: number): number {
+    const x = Math.sin(seed * 9301 + index * 49297 + 233) * 10000;
+    return x - Math.floor(x);
 }
 
 function classifyCommit(message: string): CommitType {
     const msg = message.toLowerCase();
-    if (msg.includes('feat') || msg.includes('feature')) return 'feat';
-    if (msg.includes('fix') || msg.includes('bug')) return 'fix';
-    if (msg.includes('refactor') || msg.includes('cleanup')) return 'refactor';
-    if (msg.includes('docs') || msg.includes('readme')) return 'docs';
-    if (msg.includes('test') || msg.includes('spec')) return 'test';
+    if (/\b(feat|feature|add|new|implement|create|build)\b/.test(msg)) return 'feat';
+    if (/\b(fix|bug|patch|hotfix|repair|resolve|crash|error)\b/.test(msg)) return 'fix';
+    if (/\b(refactor|clean|improve|optimize|restructure|simplify)\b/.test(msg)) return 'refactor';
+    if (/\b(doc|readme|comment|guide|license|changelog)\b/.test(msg)) return 'docs';
+    if (/\b(test|spec|coverage|jest|cypress|e2e)\b/.test(msg)) return 'test';
     return 'other';
 }
 
-function analyzeMood(commits: CommitData[]): WeatherMood {
-    if (commits.length === 0) return 'fog'; // Empty/Unknown
+function analyzeMood(commits: CommitData[], totalEvents: number): WeatherMood {
+    if (commits.length === 0 && totalEvents < 2) return 'fog';
 
-    // Frequency analysis
-    const recent = commits.slice(0, 30); // Analyze recent 30
+    const total = commits.length;
+    if (total === 0) return 'fog';
+
     const counts: Record<CommitType, number> = {
         feat: 0, fix: 0, refactor: 0, docs: 0, test: 0, other: 0
     };
+    commits.forEach(c => counts[c.type]++);
 
-    recent.forEach(c => counts[c.type]++);
+    const featRatio = counts.feat / total;
+    const fixRatio = counts.fix / total;
+    const testRatio = counts.test / total;
+    const refactorRatio = counts.refactor / total;
 
-    // Simple heuristics for mood
-    // Storm: Many 'other' or mixed chaotic types? Or maybe just HIGH activity?
-    // Request says: "storm: purple-black", "other = storm" color.
-    // "rain: fix"
-    // "sunny: feat"
-    // "wind: refactor"
+    if (total > 60) return 'storm';
+    if (testRatio > 0.30) return 'snow';
+    if (featRatio > 0.40) return 'sunny';
+    if (fixRatio > 0.35) return 'rain';
+    if (refactorRatio > 0.25) return 'wind';
+    if (total < 5) return 'fog';
 
-    // Let's use dominant type
-    const maxType = (Object.keys(counts) as CommitType[]).reduce((a, b) => counts[a] > counts[b] ? a : b);
+    const maxType = (Object.keys(counts) as CommitType[])
+        .reduce((a, b) => counts[a] > counts[b] ? a : b);
 
-    // Mapping type to mood
-    if (maxType === 'feat') return 'sunny';
-    if (maxType === 'fix') return 'rain';
-    if (maxType === 'refactor') return 'wind';
-    if (maxType === 'docs') return 'fog';
-    if (maxType === 'test') return 'snow';
-
-    // Default/Other -> Storm if high volume?
-    // Or just Storm for 'other'.
-    return 'storm';
+    const map: Record<CommitType, WeatherMood> = {
+        feat: 'sunny', fix: 'rain', refactor: 'wind',
+        docs: 'fog', test: 'snow', other: 'storm',
+    };
+    return map[maxType];
 }

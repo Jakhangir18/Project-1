@@ -16,6 +16,8 @@ interface WeatherCanvasProps {
     weather: WeatherState | null;
     className?: string;
     isZoomedOut: boolean;
+    seed?: number;
+
 }
 
 export default function WeatherCanvas({ weather, className, isZoomedOut }: WeatherCanvasProps) {
