@@ -15,6 +15,7 @@ export interface WeatherState {
     mood: WeatherMood;
     commits: CommitData[];
     repoName: string;
+    seed: number;
 }
 
 export interface Layer {

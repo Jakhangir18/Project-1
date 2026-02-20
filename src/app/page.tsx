@@ -12,7 +12,8 @@ export default function Home() {
   const defaultWeather: WeatherState = {
     mood: 'storm',
     commits: [],
-    repoName: 'commitweather'
+    repoName: 'commitweather',
+    seed: 1337
   };
 
   const [weather, setWeather] = useState<WeatherState | null>(defaultWeather);
