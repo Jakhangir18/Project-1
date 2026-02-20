@@ -1,6 +1,6 @@
 import { BaseLayer } from './Layer';
 import { BlockRenderer } from './BlockRenderer';
-import { WeatherMood } from './types';
+import { WeatherMood, WeatherState } from './types';
 
 interface VoxelTree {
     x: number;
@@ -23,12 +23,87 @@ export class TreeLayer extends BaseLayer {
         this.generateTrees();
     }
 
-    setWeather(state: any) {
+    setWeather(state: WeatherState) {
         const oldMood = this.state?.mood;
         super.setWeather(state);
         if (oldMood !== state.mood) {
             this.generateTrees();
             this.time = 0;
+        }
+    }
+
+    private getTreePalette(mood: WeatherMood): {
+        trunk: string;
+        leaves: string;
+        leavesLight: string;
+        leavesDark: string;
+        spruce: string;
+        spruceLight: string;
+    } {
+        switch (mood) {
+            case 'sunny':
+                return {
+                    trunk: '#5d4037',
+                    leaves: '#66bb6a',
+                    leavesLight: '#81c784',
+                    leavesDark: '#43a047',
+                    spruce: '#2e7d32',
+                    spruceLight: '#388e3c',
+                };
+            case 'rain':
+                return {
+                    trunk: '#4e342e',
+                    leaves: '#2e7d32',
+                    leavesLight: '#388e3c',
+                    leavesDark: '#1b5e20',
+                    spruce: '#1b5e20',
+                    spruceLight: '#2e7d32',
+                };
+            case 'storm':
+                return {
+                    trunk: '#3e2723',
+                    leaves: '#1b5e20',
+                    leavesLight: '#2e7d32',
+                    leavesDark: '#0d3310',
+                    spruce: '#1b5e20',
+                    spruceLight: '#2e7d32',
+                };
+            case 'snow':
+                return {
+                    trunk: '#5d4037',
+                    leaves: '#eceff1',
+                    leavesLight: '#fafafa',
+                    leavesDark: '#cfd8dc',
+                    spruce: '#1b5e20',
+                    spruceLight: '#2e7d32',
+                };
+            case 'fog':
+                return {
+                    trunk: '#455a64',
+                    leaves: '#78909c',
+                    leavesLight: '#90a4ae',
+                    leavesDark: '#607d8b',
+                    spruce: '#546e7a',
+                    spruceLight: '#607d8b',
+                };
+            case 'wind':
+                return {
+                    trunk: '#4e342e',
+                    leaves: '#26a69a',
+                    leavesLight: '#4db6ac',
+                    leavesDark: '#00897b',
+                    spruce: '#00796b',
+                    spruceLight: '#00897b',
+                };
+            default:
+                return {
+                    trunk: '#5d4037',
+                    leaves: '#4caf50',
+                    leavesLight: '#66bb6a',
+                    leavesDark: '#388e3c',
+                    spruce: '#2e7d32',
+                    spruceLight: '#388e3c',
+                };
         }
     }
 
@@ -108,7 +183,7 @@ export class TreeLayer extends BaseLayer {
         });
     }
 
-    private drawOak(ctx: CanvasRenderingContext2D, x: number, y: number, bs: number, palette: any) {
+    private drawOak(ctx: CanvasRenderingContext2D, x: number, y: number, bs: number, palette: ReturnType<TreeLayer['getTreePalette']>) {
         // Trunk: 1 block wide, 4-5 blocks tall
         const trunkHeight = 5;
         for (let j = 0; j < trunkHeight; j++) {
@@ -135,7 +210,7 @@ export class TreeLayer extends BaseLayer {
         BlockRenderer.drawBlock(ctx, x, canopyBottom - bs * 4, bs, palette.leavesLight);
     }
 
-    private drawDarkOak(ctx: CanvasRenderingContext2D, x: number, y: number, bs: number, palette: any) {
+    private drawDarkOak(ctx: CanvasRenderingContext2D, x: number, y: number, bs: number, palette: ReturnType<TreeLayer['getTreePalette']>) {
         // Trunk: 2 blocks wide, 4 blocks tall
         const trunkHeight = 4;
         for (let j = 0; j < trunkHeight; j++) {
@@ -161,7 +236,7 @@ export class TreeLayer extends BaseLayer {
         }
     }
 
-    private drawSpruce(ctx: CanvasRenderingContext2D, x: number, y: number, bs: number, palette: any) {
+    private drawSpruce(ctx: CanvasRenderingContext2D, x: number, y: number, bs: number, palette: ReturnType<TreeLayer['getTreePalette']>) {
         // Trunk: 1 block wide, 5 blocks tall
         const trunkHeight = 5;
         for (let j = 0; j < trunkHeight; j++) {
@@ -200,74 +275,6 @@ export class TreeLayer extends BaseLayer {
             ctx.fillRect(x - 2 * bs, canopyBottom - bs * 3 - 3, bs * 5, 3);
             ctx.fillRect(x, canopyBottom - bs * 5 - 3, bs, 3);
             ctx.globalAlpha = 1;
-        }
-    }
-
-    private getTreePalette(mood: WeatherMood) {
-        switch (mood) {
-            case 'sunny':
-                return {
-                    trunk: '#5d4037',
-                    leaves: '#66bb6a',
-                    leavesLight: '#81c784',
-                    leavesDark: '#43a047',
-                    spruce: '#2e7d32',
-                    spruceLight: '#388e3c',
-                };
-            case 'rain':
-                return {
-                    trunk: '#4e342e',
-                    leaves: '#2e7d32',
-                    leavesLight: '#388e3c',
-                    leavesDark: '#1b5e20',
-                    spruce: '#1b5e20',
-                    spruceLight: '#2e7d32',
-                };
-            case 'storm':
-                return {
-                    trunk: '#3e2723',
-                    leaves: '#1b5e20',
-                    leavesLight: '#2e7d32',
-                    leavesDark: '#0d3310',
-                    spruce: '#1b5e20',
-                    spruceLight: '#2e7d32',
-                };
-            case 'snow':
-                return {
-                    trunk: '#5d4037',
-                    leaves: '#eceff1',
-                    leavesLight: '#fafafa',
-                    leavesDark: '#cfd8dc',
-                    spruce: '#1b5e20',
-                    spruceLight: '#2e7d32',
-                };
-            case 'fog':
-                return {
-                    trunk: '#455a64',
-                    leaves: '#78909c',
-                    leavesLight: '#90a4ae',
-                    leavesDark: '#607d8b',
-                    spruce: '#546e7a',
-                    spruceLight: '#607d8b',
-                };
-            case 'wind':
-                return {
-                    trunk: '#4e342e',
-                    leaves: '#26a69a',
-                    leavesLight: '#4db6ac',
-                    leavesDark: '#00897b',
-                    spruce: '#00796b',
-                    spruceLight: '#00897b',
-                };
-            default:
-                return {
-                    trunk: '#5d4037',
-                    leaves: '#4caf50',
-                    leavesLight: '#66bb6a',
-                    leavesDark: '#388e3c',
-                    spruce: '#2e7d32',
-                    spruceLight: '#388e3c',
-                };
         }
     }
 
