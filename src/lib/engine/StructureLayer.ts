@@ -1,6 +1,6 @@
 import { BaseLayer } from './Layer';
 import { BlockRenderer } from './BlockRenderer';
-import { WeatherMood } from './types';
+import { WeatherMood, WeatherState } from './types';
 
 interface House {
     x: number;
@@ -24,7 +24,7 @@ export class StructureLayer extends BaseLayer {
         this.generateHouses();
     }
 
-    setWeather(state: any) {
+    setWeather(state: WeatherState) {
         const oldMood = this.state?.mood;
         super.setWeather(state);
         if (oldMood !== state.mood) {

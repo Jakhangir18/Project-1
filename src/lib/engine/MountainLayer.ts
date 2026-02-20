@@ -1,6 +1,6 @@
 import { BaseLayer } from './Layer';
 import { BlockRenderer } from './BlockRenderer';
-import { WeatherMood } from './types';
+import { WeatherMood, WeatherState } from './types';
 
 interface MountainBlock {
     x: number;
@@ -33,7 +33,7 @@ export class MountainLayer extends BaseLayer {
 
     private generateMountains(width: number, seedStr: string) {
         this.ranges = [];
-        let seed = seedStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const seed = seedStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
         const cols = Math.ceil(width / this.blockSize);
 
         // Background range (far mountains, smaller, more muted)
@@ -103,7 +103,7 @@ export class MountainLayer extends BaseLayer {
         }
     }
 
-    setWeather(state: any) {
+    setWeather(state: WeatherState) {
         const oldRepo = this.state?.repoName;
         const oldMood = this.state?.mood;
         super.setWeather(state);

@@ -1,5 +1,5 @@
 import { BaseLayer } from './Layer';
-import { CommitData, CommitType } from './types';
+import { CommitData, CommitType, WeatherState } from './types';
 
 interface CommitColumn {
     x: number;
@@ -32,7 +32,7 @@ export class FireflySystem extends BaseLayer {
         super.resize(width, height);
     }
 
-    setWeather(state: any) {
+    setWeather(state: WeatherState) {
         super.setWeather(state);
         this.initColumns();
         this.time = 0;
@@ -81,7 +81,7 @@ export class FireflySystem extends BaseLayer {
         });
     }
 
-    checkHit(x: number, y: number): CommitData | null {
+    checkHit(x: number): CommitData | null {
         for (const col of this.columns) {
             if (Math.abs(x - col.x) < 25) {
                 this.hoveredColumn = col;

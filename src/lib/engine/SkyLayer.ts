@@ -7,7 +7,7 @@ import { WeatherMood } from './types';
  */
 export class SkyLayer extends BaseLayer {
 
-    update(dt: number) {
+    update() {
         // Static sky, no per-frame update needed
     }
 
