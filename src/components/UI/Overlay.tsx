@@ -1,7 +1,6 @@
 'use client';
 
 import { WeatherState } from '@/lib/engine/types';
-import { useEffect, useState } from 'react';
 
 interface OverlayProps {
     weather: WeatherState | null;
@@ -9,16 +8,6 @@ interface OverlayProps {
 }
 
 export default function Overlay({ weather, showStory }: OverlayProps) {
-    const [showStoryText, setShowStoryText] = useState(false);
-
-    useEffect(() => {
-        if (showStory) {
-            setShowStoryText(true);
-            const timer = setTimeout(() => setShowStoryText(false), 4000);
-            return () => clearTimeout(timer);
-        }
-    }, [showStory]);
-
     return (
         <div className="pointer-events-none text-white select-none">
             {/* Top Left Title */}
@@ -40,7 +29,7 @@ export default function Overlay({ weather, showStory }: OverlayProps) {
 
             {/* Story Text */}
             <div
-                className={`absolute top-[20%] left-0 w-full text-center transition-opacity duration-1000 ${showStoryText ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute top-[20%] left-0 w-full text-center transition-opacity duration-1000 ${showStory ? 'opacity-100' : 'opacity-0'}`}
             >
                 {weather && (
                     <h1 className="font-syne text-4xl md:text-6xl font-extrabold text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] px-4">
