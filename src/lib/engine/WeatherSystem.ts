@@ -1,5 +1,5 @@
 import { BaseLayer } from './Layer';
-import { WeatherMood } from './types';
+import { WeatherMood, WeatherState } from './types';
 
 interface Particle {
     x: number;
@@ -37,7 +37,7 @@ export class WeatherSystem extends BaseLayer {
         this.initParticles();
     }
 
-    setWeather(state: any) {
+    setWeather(state: WeatherState) {
         const oldMood = this.state?.mood;
         super.setWeather(state);
         if (oldMood !== state.mood) {
