@@ -44,9 +44,9 @@ export default function Home() {
 
       setTimeout(() => setShowStory(false), 4500);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Fetch failed:', err);
-      setError(err?.message || 'Could not find repo or API limit reached');
+      setError(err instanceof Error ? err.message : 'Could not find repo or API limit reached');
       setZoomedOut(true); // Zoom back out even on error
 
       // Clear error after 4s
