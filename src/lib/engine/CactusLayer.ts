@@ -32,7 +32,7 @@ export class CactusLayer extends BaseLayer {
 
     private generateCacti() {
         this.cacti = [];
-        if (!this.width || !this.state || this.state.mood !== 'storm') return; // storm = Desert
+        if (!this.width || !this.state || this.state.mood !== 'fog') return; // fog = Desert
 
         const count = 8 + Math.floor(this.width / 150);
 
@@ -60,7 +60,7 @@ export class CactusLayer extends BaseLayer {
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        if (!this.state || this.state.mood !== 'storm') return;
+        if (!this.state || this.state.mood !== 'fog') return;
 
         const palette = {
             trunk: '#2e7d32',   // Cactus body
