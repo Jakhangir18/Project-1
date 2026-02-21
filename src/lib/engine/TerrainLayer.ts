@@ -106,7 +106,7 @@ export class TerrainLayer extends BaseLayer {
 
     private getBlockPalette(mood: WeatherMood): { grass: string; dirt: string; stone: string } {
         switch (mood) {
-            case 'sunny': // Dead Desert
+            case 'sunny': // Summer / Beach
                 return { grass: '#f2d59b', dirt: '#d2b27b', stone: '#b89b6a' }; // Beach sand layers
             case 'rain':
                 return { grass: '#2e7d32', dirt: '#5d4037', stone: '#37474f' };
@@ -114,8 +114,8 @@ export class TerrainLayer extends BaseLayer {
                 return { grass: '#388e3c', dirt: '#4e342e', stone: '#1a1a2e' };
             case 'snow':
                 return { grass: '#eceff1', dirt: '#b0bec5', stone: '#78909c' };
-            case 'fog':
-                return { grass: '#546e7a', dirt: '#455a64', stone: '#37474f' };
+            case 'fog': // Dead Desert
+                return { grass: '#dcb889', dirt: '#b18e63', stone: '#8b5a3c' }; // Desert sand and cracked earth
             case 'wind':
                 return { grass: '#66bb6a', dirt: '#795548', stone: '#546e7a' };
             default:
