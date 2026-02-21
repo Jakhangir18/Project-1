@@ -4,7 +4,7 @@ import { WeatherMood, WeatherState } from './types';
 
 interface VoxelTree {
     x: number;
-    type: 'oak' | 'dark_oak' | 'spruce' | 'cactus';
+    type: 'oak' | 'dark_oak' | 'spruce' | 'cactus' | 'sakura';
     size: number;      // 0.7 to 1.3 for variety
     delay: number;
     depth: number;     // 0 = foreground, 1 = background (affects size)
@@ -41,6 +41,9 @@ export class TreeLayer extends BaseLayer {
         leavesDark: string;
         spruce: string;
         spruceLight: string;
+        blossom: string;
+        blossomLight: string;
+        blossomDark: string;
     } {
         switch (mood) {
             case 'sunny':
@@ -51,6 +54,9 @@ export class TreeLayer extends BaseLayer {
                     leavesDark: '#1b5e20',
                     spruce: '#000000',  // Unused
                     spruceLight: '#000000',
+                    blossom: '#f8bbd0',
+                    blossomLight: '#fce4ec',
+                    blossomDark: '#f48fb1',
                 };
             case 'rain':
                 return {
@@ -60,6 +66,9 @@ export class TreeLayer extends BaseLayer {
                     leavesDark: '#1b5e20',
                     spruce: '#1b5e20',
                     spruceLight: '#2e7d32',
+                    blossom: '#f8bbd0',
+                    blossomLight: '#fce4ec',
+                    blossomDark: '#f48fb1',
                 };
             case 'storm':
                 return {
@@ -69,6 +78,9 @@ export class TreeLayer extends BaseLayer {
                     leavesDark: '#0d3310',
                     spruce: '#1b5e20',
                     spruceLight: '#2e7d32',
+                    blossom: '#f48fb1',
+                    blossomLight: '#f8bbd0',
+                    blossomDark: '#ec407a',
                 };
             case 'snow':
                 return {
@@ -78,6 +90,9 @@ export class TreeLayer extends BaseLayer {
                     leavesDark: '#cfd8dc',
                     spruce: '#1b5e20',
                     spruceLight: '#2e7d32',
+                    blossom: '#eceff1',
+                    blossomLight: '#fafafa',
+                    blossomDark: '#cfd8dc',
                 };
             case 'fog':
                 return {
@@ -87,15 +102,21 @@ export class TreeLayer extends BaseLayer {
                     leavesDark: '#607d8b',
                     spruce: '#546e7a',
                     spruceLight: '#607d8b',
+                    blossom: '#c5b0be',
+                    blossomLight: '#d9c8d3',
+                    blossomDark: '#ab8f9f',
                 };
             case 'wind':
                 return {
                     trunk: '#4e342e',
-                    leaves: '#26a69a',
-                    leavesLight: '#4db6ac',
-                    leavesDark: '#00897b',
-                    spruce: '#00796b',
-                    spruceLight: '#00897b',
+                    leaves: '#43a047',
+                    leavesLight: '#66bb6a',
+                    leavesDark: '#2e7d32',
+                    spruce: '#2e7d32',
+                    spruceLight: '#43a047',
+                    blossom: '#f48fb1',
+                    blossomLight: '#f8bbd0',
+                    blossomDark: '#ec407a',
                 };
             default:
                 return {
@@ -105,6 +126,9 @@ export class TreeLayer extends BaseLayer {
                     leavesDark: '#388e3c',
                     spruce: '#2e7d32',
                     spruceLight: '#388e3c',
+                    blossom: '#f8bbd0',
+                    blossomLight: '#fce4ec',
+                    blossomDark: '#f48fb1',
                 };
         }
     }
@@ -118,9 +142,15 @@ export class TreeLayer extends BaseLayer {
             const x = 30 + Math.random() * (this.width - 60);
             const gridX = Math.floor(x / this.blockSize) * this.blockSize;
 
-            let type: 'oak' | 'dark_oak' | 'spruce' | 'cactus' = 'oak';
+            let type: 'oak' | 'dark_oak' | 'spruce' | 'cactus' | 'sakura' = 'oak';
             if (this.state?.mood === 'snow') type = 'spruce';
             else if (this.state?.mood === 'sunny') type = 'cactus';
+            else if (this.state?.mood === 'wind') {
+                const roll = Math.random();
+                if (roll > 0.55) type = 'sakura';
+                else if (roll > 0.2) type = 'oak';
+                else type = 'dark_oak';
+            }
             else if (this.state?.mood === 'storm' || this.state?.mood === 'rain') {
                 type = Math.random() > 0.5 ? 'dark_oak' : 'oak';
             }
@@ -183,6 +213,8 @@ export class TreeLayer extends BaseLayer {
                 this.drawSpruce(ctx, tree.x, groundY, bs, palette);
             } else if (tree.type === 'cactus') {
                 this.drawCactus(ctx, tree, groundY, bs, palette);
+            } else if (tree.type === 'sakura') {
+                this.drawSakura(ctx, tree.x, groundY, bs, palette);
             }
 
             ctx.restore();
@@ -307,6 +339,28 @@ export class TreeLayer extends BaseLayer {
             ctx.fillRect(x, canopyBottom - bs * 5 - 3, bs, 3);
             ctx.globalAlpha = 1;
         }
+    }
+
+    private drawSakura(ctx: CanvasRenderingContext2D, x: number, y: number, bs: number, palette: ReturnType<TreeLayer['getTreePalette']>) {
+        const trunkHeight = 5;
+        for (let j = 0; j < trunkHeight; j++) {
+            BlockRenderer.drawBlock(ctx, x, y - (j + 1) * bs, bs, palette.trunk);
+        }
+
+        const canopyBottom = y - trunkHeight * bs;
+        const canopyX = x - bs * 2;
+
+        for (let i = 0; i < 5; i++) {
+            BlockRenderer.drawBlock(ctx, canopyX + i * bs, canopyBottom - bs, bs, palette.blossom);
+        }
+        for (let i = 0; i < 5; i++) {
+            const tone = i % 2 === 0 ? palette.blossomDark : palette.blossom;
+            BlockRenderer.drawBlock(ctx, canopyX + i * bs, canopyBottom - bs * 2, bs, tone);
+        }
+        for (let i = 0; i < 3; i++) {
+            BlockRenderer.drawBlock(ctx, canopyX + bs + i * bs, canopyBottom - bs * 3, bs, palette.blossomLight);
+        }
+        BlockRenderer.drawBlock(ctx, x, canopyBottom - bs * 4, bs, palette.blossomLight);
     }
 
     private getGroundY(x: number): number {
