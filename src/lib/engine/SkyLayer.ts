@@ -37,14 +37,14 @@ export class SkyLayer extends BaseLayer {
     private getGradientStops(mood: WeatherMood): [number, string][] {
         switch (mood) {
             case 'sunny':
-                // Evening sunset over the sea
+                // Vivid summer sunset
                 return [
-                    [0.0, '#4a235a'],    // Deep purple-black top
-                    [0.15, '#7b3ff2'],   // Purple
-                    [0.3, '#c471ed'],    // Violet pink
-                    [0.5, '#ff6b35'],    // Warm orange
-                    [0.7, '#ffa751'],    // Golden orange
-                    [1.0, '#ffb35c'],    // Warm horizon gold
+                    [0.0, '#5d1a4a'],    // Deep purple-black top
+                    [0.1, '#8a1f6e'],    // Rich purple
+                    [0.25, '#d04545'],   // Deep red-pink
+                    [0.45, '#ff5722'],   // Bright orange-red
+                    [0.65, '#ffb300'],   // Vivid golden orange
+                    [1.0, '#ffc857'],    // Bright warm gold horizon
                 ];
 
             case 'rain':
@@ -82,13 +82,14 @@ export class SkyLayer extends BaseLayer {
                 ];
 
             case 'fog':
-                // Misty grey
+                // Dead desert: harsh, barren, lifeless
                 return [
-                    [0.0, '#37474f'],
-                    [0.3, '#455a64'],
-                    [0.6, '#546e7a'],
-                    [0.8, '#78909c'],
-                    [1.0, '#90a4ae'],
+                    [0.0, '#2c1810'],    // Near black top
+                    [0.15, '#4a2c20'],   // Very dark brown
+                    [0.35, '#6b4423'],   // Dark brown
+                    [0.55, '#8b5a3c'],   // Rusty brown
+                    [0.8, '#a67c52'],    // Dull tan
+                    [1.0, '#9d7e6f'],    // Murky horizon
                 ];
 
             case 'wind':
@@ -136,8 +137,8 @@ export class SkyLayer extends BaseLayer {
                 hazeAlpha = 0.3;
                 break;
             case 'fog':
-                hazeColor = '150, 160, 170';
-                hazeAlpha = 0.4;
+                hazeColor = '139, 90, 60';  // Dark dusty brown haze
+                hazeAlpha = 0.5;
                 break;
             case 'wind':
                 hazeColor = '238, 184, 206';
