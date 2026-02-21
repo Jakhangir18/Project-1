@@ -102,6 +102,25 @@ export class TerrainLayer extends BaseLayer {
                     ctx.stroke();
                     ctx.restore();
                 }
+
+                // Fallen sakura petals in Spring
+                if (blockFromTop === 0 && this.state?.mood === 'wind') {
+                    const colIndex = Math.floor(col.x / this.blockSize);
+                    const petalMask = colIndex % 6;
+
+                    if (petalMask === 1 || petalMask === 4) {
+                        ctx.save();
+                        ctx.globalAlpha = 0.55;
+                        ctx.fillStyle = petalMask === 1 ? '#ce93d8' : '#ba68c8';
+
+                        ctx.fillRect(col.x + 2, by + 2, 4, 2);
+                        if (colIndex % 3 === 0) {
+                            ctx.fillRect(col.x + 9, by + 4, 3, 2);
+                        }
+
+                        ctx.restore();
+                    }
+                }
             }
         });
     }
@@ -119,7 +138,7 @@ export class TerrainLayer extends BaseLayer {
             case 'fog':
                 return { grass: '#546e7a', dirt: '#455a64', stone: '#37474f' };
             case 'wind':
-                return { grass: '#26a69a', dirt: '#00897b', stone: '#00695c' };
+                return { grass: '#66bb6a', dirt: '#795548', stone: '#546e7a' };
             default:
                 return { grass: '#4caf50', dirt: '#795548', stone: '#455a64' };
         }
