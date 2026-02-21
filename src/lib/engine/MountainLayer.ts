@@ -287,9 +287,9 @@ export class MountainLayer extends BaseLayer {
                 };
             case 'wind':
                 return {
-                    top: '#26a69a',
-                    mid: '#00897b',
-                    base: '#00695c',
+                    top: '#66bb6a',
+                    mid: '#6d4c41',
+                    base: '#455a64',
                 };
             default:
                 return { top: '#546e7a', mid: '#37474f', base: '#263238' };
