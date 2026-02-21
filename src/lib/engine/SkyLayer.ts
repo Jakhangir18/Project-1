@@ -6,9 +6,10 @@ import { WeatherMood } from './types';
  * Each mood has a unique 5+ stop gradient plus fog bands.
  */
 export class SkyLayer extends BaseLayer {
+    private time: number = 0;
 
-    update() {
-        // Static sky, no per-frame update needed
+    update(dt: number) {
+        this.time += dt;
     }
 
     draw(ctx: CanvasRenderingContext2D) {
@@ -24,6 +25,10 @@ export class SkyLayer extends BaseLayer {
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, this.width, this.height);
+
+        if (this.state.mood === 'wind') {
+            this.drawWindClouds(ctx);
+        }
 
         // Atmospheric haze near the ground
         this.drawAtmosphere(ctx, this.state.mood);
@@ -87,14 +92,14 @@ export class SkyLayer extends BaseLayer {
                 ];
 
             case 'wind':
-                // Cool teal twilight
+                // Fresh spring daytime sky
                 return [
-                    [0.0, '#004d40'],    // Deep teal
-                    [0.2, '#00695c'],    // Teal
-                    [0.4, '#00796b'],    // Medium teal
-                    [0.6, '#00897b'],    // Lighter teal
-                    [0.8, '#26a69a'],    // Pale teal
-                    [1.0, '#4db6ac'],    // Light horizon
+                    [0.0, '#4f8fd6'],    // Deep sky blue
+                    [0.2, '#6ea7e6'],    // Soft blue
+                    [0.4, '#8bbdef'],    // Mid blue
+                    [0.6, '#a7cdf6'],    // Light blue
+                    [0.8, '#c8defb'],    // Very light blue
+                    [1.0, '#f4d6e6'],    // Warm spring horizon
                 ];
 
             default:
@@ -135,8 +140,8 @@ export class SkyLayer extends BaseLayer {
                 hazeAlpha = 0.4;
                 break;
             case 'wind':
-                hazeColor = '50, 160, 150';
-                hazeAlpha = 0.15;
+                hazeColor = '238, 184, 206';
+                hazeAlpha = 0.12;
                 break;
             default:
                 return;
@@ -184,5 +189,56 @@ export class SkyLayer extends BaseLayer {
         }
 
         ctx.restore();
+    }
+
+    private drawWindClouds(ctx: CanvasRenderingContext2D) {
+        const clouds = [
+            { x: this.width * 0.1, y: this.height * 0.14, w: 140, h: 34, speed: 10, alpha: 0.2 },
+            { x: this.width * 0.35, y: this.height * 0.22, w: 170, h: 40, speed: 14, alpha: 0.18 },
+            { x: this.width * 0.62, y: this.height * 0.16, w: 120, h: 30, speed: 12, alpha: 0.22 },
+            { x: this.width * 0.8, y: this.height * 0.26, w: 160, h: 36, speed: 16, alpha: 0.16 },
+        ];
+
+        ctx.save();
+
+        clouds.forEach(cloud => {
+            const drift = (this.time * cloud.speed) % (this.width + cloud.w * 2);
+            const baseX = cloud.x + drift - cloud.w;
+
+            for (let pass = 0; pass < 2; pass++) {
+                const x = pass === 0 ? baseX : baseX - (this.width + cloud.w * 1.4);
+                this.drawCloudCluster(ctx, x, cloud.y, cloud.w, cloud.h, cloud.alpha);
+            }
+        });
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 6; i++) {
+            const y = this.height * 0.18 + i * (this.height * 0.06);
+            const offset = ((this.time * 120) + i * 80) % (this.width + 100);
+            ctx.beginPath();
+            ctx.moveTo(offset - 100, y);
+            ctx.lineTo(offset - 20, y);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    private drawCloudCluster(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        alpha: number,
+    ) {
+        const color = `rgba(255, 245, 252, ${alpha})`;
+        ctx.fillStyle = color;
+
+        ctx.fillRect(x, y, width * 0.45, height * 0.5);
+        ctx.fillRect(x + width * 0.2, y - height * 0.2, width * 0.35, height * 0.55);
+        ctx.fillRect(x + width * 0.45, y - height * 0.1, width * 0.4, height * 0.5);
+        ctx.fillRect(x + width * 0.7, y, width * 0.28, height * 0.42);
     }
 }
