@@ -96,15 +96,15 @@ export class TreeLayer extends BaseLayer {
                 };
             case 'fog':
                 return {
-                    trunk: '#455a64',
-                    leaves: '#78909c',
-                    leavesLight: '#90a4ae',
-                    leavesDark: '#607d8b',
-                    spruce: '#546e7a',
-                    spruceLight: '#607d8b',
-                    blossom: '#c5b0be',
-                    blossomLight: '#d9c8d3',
-                    blossomDark: '#ab8f9f',
+                    trunk: '#8d6e63',
+                    leaves: '#9ccc65',  // Rare green vegetation
+                    leavesLight: '#aed581',
+                    leavesDark: '#7cb342',
+                    spruce: '#6d4c41',
+                    spruceLight: '#8d6e63',
+                    blossom: '#d2b48c',
+                    blossomLight: '#deb887',
+                    blossomDark: '#c19a6b',
                 };
             case 'wind':
                 return {
@@ -136,7 +136,12 @@ export class TreeLayer extends BaseLayer {
         this.trees = [];
         if (!this.width || !this.state) return;
 
-        const count = 8 + Math.floor(this.width / 150);
+        let count = 8 + Math.floor(this.width / 150);
+
+        // Desert has very few trees
+        if (this.state?.mood === 'fog') {
+            count = 1 + Math.floor(this.width / 300);
+        }
 
         for (let i = 0; i < count; i++) {
             const x = 30 + Math.random() * (this.width - 60);
@@ -147,6 +152,10 @@ export class TreeLayer extends BaseLayer {
             else if (this.state?.mood === 'sunny') {
                 const roll = Math.random();
                 type = roll > 0.5 ? 'oak' : 'dark_oak';
+            }
+            else if (this.state?.mood === 'fog') {
+                // Desert: only cacti
+                type = 'cactus';
             }
             else if (this.state?.mood === 'wind') {
                 const roll = Math.random();
@@ -228,28 +237,34 @@ export class TreeLayer extends BaseLayer {
         });
     }
 
-    private drawCactus(ctx: CanvasRenderingContext2D, tree: VoxelTree, groundY: number, bs: number, palette: ReturnType<TreeLayer['getTreePalette']>) {
+    private drawCactus(ctx: CanvasRenderingContext2D, tree: VoxelTree, groundY: number, bs: number, _palette: ReturnType<TreeLayer['getTreePalette']>) {
         const x = tree.x;
         const y = groundY;
+
+        const cactusPalette = {
+            trunk: '#2e7d32',   // Cactus body
+            leaves: '#388e3c',  // Cactus highlights
+            leavesDark: '#1b5e20',
+        };
 
         // Main Body: 1 block wide, 3-5 blocks tall
         const height = 4;
         for (let j = 0; j < height; j++) {
-            BlockRenderer.drawBlock(ctx, x, y - (j + 1) * bs, bs, palette.trunk, { topHighlight: j === height - 1 });
+            BlockRenderer.drawBlock(ctx, x, y - (j + 1) * bs, bs, cactusPalette.trunk, { topHighlight: j === height - 1 });
         }
 
         // Left arm (optional)
         if (tree.hasLeftArm) {
             const armY = y - 2 * bs;
-            BlockRenderer.drawBlock(ctx, x - bs, armY, bs, palette.leavesDark); // horizontal
-            BlockRenderer.drawBlock(ctx, x - bs, armY - bs, bs, palette.trunk, { topHighlight: true }); // vertical
+            BlockRenderer.drawBlock(ctx, x - bs, armY, bs, cactusPalette.leavesDark); // horizontal
+            BlockRenderer.drawBlock(ctx, x - bs, armY - bs, bs, cactusPalette.trunk, { topHighlight: true }); // vertical
         }
 
         // Right arm (optional)
         if (tree.hasRightArm) {
             const armY = y - 3 * bs;
-            BlockRenderer.drawBlock(ctx, x + bs, armY, bs, palette.leaves); // horizontal
-            BlockRenderer.drawBlock(ctx, x + bs, armY - bs, bs, palette.trunk, { topHighlight: true }); // vertical
+            BlockRenderer.drawBlock(ctx, x + bs, armY, bs, cactusPalette.leaves); // horizontal
+            BlockRenderer.drawBlock(ctx, x + bs, armY - bs, bs, cactusPalette.trunk, { topHighlight: true }); // vertical
         }
     }
 
