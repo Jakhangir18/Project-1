@@ -188,7 +188,7 @@ function getBiomeFromScore(score: number): Biome {
 
 function mapBiomeToMood(biome: Biome): WeatherMood {
     switch (biome) {
-        case 'DEAD_DESERT': return 'storm'; // Dusty, harsh, lifeless
+        case 'DEAD_DESERT': return 'fog'; // Dusty, hazy, lifeless desert
         case 'ICE_TUNDRA': return 'snow';
         case 'SUBTROPICS': return 'rain';
         case 'SPRING': return 'wind';
