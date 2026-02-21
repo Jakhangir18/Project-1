@@ -48,10 +48,10 @@ export class TreeLayer extends BaseLayer {
         switch (mood) {
             case 'sunny':
                 return {
-                    trunk: '#2e7d32',   // Cactus body
-                    leaves: '#388e3c',  // Cactus highlights
-                    leavesLight: '#4caf50',
-                    leavesDark: '#1b5e20',
+                    trunk: '#6d4c41',   // Beach palm trunk
+                    leaves: '#7cb342',  // Tropical green
+                    leavesLight: '#9ccc65',
+                    leavesDark: '#558b2f',
                     spruce: '#000000',  // Unused
                     spruceLight: '#000000',
                     blossom: '#f8bbd0',
@@ -144,7 +144,10 @@ export class TreeLayer extends BaseLayer {
 
             let type: 'oak' | 'dark_oak' | 'spruce' | 'cactus' | 'sakura' = 'oak';
             if (this.state?.mood === 'snow') type = 'spruce';
-            else if (this.state?.mood === 'sunny') type = 'cactus';
+            else if (this.state?.mood === 'sunny') {
+                const roll = Math.random();
+                type = roll > 0.5 ? 'oak' : 'dark_oak';
+            }
             else if (this.state?.mood === 'wind') {
                 const roll = Math.random();
                 if (roll > 0.55) type = 'sakura';
@@ -157,15 +160,19 @@ export class TreeLayer extends BaseLayer {
 
             const depth = Math.random();
 
-            this.trees.push({
+            const treeObj: VoxelTree = {
                 x: gridX,
                 type,
                 size: 0.7 + Math.random() * 0.6,
                 delay: 2.0 + Math.random() * 1.5,
                 depth,
-                hasLeftArm: type === 'cactus' ? Math.random() > 0.3 : undefined,
-                hasRightArm: type === 'cactus' ? Math.random() > 0.3 : undefined,
-            });
+            };
+            // Only cactus trees can have arms
+            if ((type as any) === 'cactus') {
+                treeObj.hasLeftArm = Math.random() > 0.3;
+                treeObj.hasRightArm = Math.random() > 0.3;
+            }
+            this.trees.push(treeObj as VoxelTree);
         }
 
         // Sort by depth (draw background trees first)
