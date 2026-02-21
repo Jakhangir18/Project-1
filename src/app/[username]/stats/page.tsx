@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { fetchWeather } from '@/lib/github';
 import { WeatherState, Biome } from '@/lib/engine/types';
@@ -14,6 +15,54 @@ export default function StatsPage() {
   const [weather, setWeather] = useState<WeatherState | null>(null);
   const [loading, setLoading] = useState(true);
   const [scoreProgress, setScoreProgress] = useState(0);
+
+  // Calculate real stats from commits (must be before early return)
+  const weeklyActivity = React.useMemo(() => {
+    if (!weather) return [0, 0, 0, 0, 0, 0, 0];
+    const dayMap: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    weather.commits.forEach(commit => {
+      const day = new Date(commit.date).getDay();
+      dayMap[day]++;
+    });
+    const maxCount = Math.max(...Object.values(dayMap), 1);
+    return [
+      dayMap[1] / maxCount * 100, // Monday
+      dayMap[2] / maxCount * 100, // Tuesday  
+      dayMap[3] / maxCount * 100, // Wednesday
+      dayMap[4] / maxCount * 100, // Thursday
+      dayMap[5] / maxCount * 100, // Friday
+      dayMap[6] / maxCount * 100, // Saturday
+      dayMap[0] / maxCount * 100, // Sunday
+    ];
+  }, [weather]);
+
+  const mostActiveDay = React.useMemo(() => {
+    if (!weather) return 'N/A';
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayMap: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    weather.commits.forEach(commit => {
+      const day = new Date(commit.date).getDay();
+      dayMap[day]++;
+    });
+    const maxDay = Object.entries(dayMap).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+    return days[parseInt(maxDay)];
+  }, [weather]);
+
+  const heatMapData = React.useMemo(() => {
+    if (!weather) return Array(35).fill(0);
+    // Last 35 days activity
+    const today = new Date();
+    const heatMap: number[] = [];
+    for (let i = 34; i >= 0; i--) {
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() - i);
+      const dateStr = targetDate.toISOString().split('T')[0];
+      const count = weather.commits.filter(c => c.date.startsWith(dateStr)).length;
+      heatMap.push(count);
+    }
+    const maxCount = Math.max(...heatMap, 1);
+    return heatMap.map(count => count / maxCount);
+  }, [weather]);
 
   useEffect(() => {
     async function loadWeather() {
@@ -80,6 +129,16 @@ export default function StatsPage() {
           className="mb-8 text-slate-400 hover:text-white font-dm-mono text-sm transition-colors flex items-center gap-2"
         >
           {'<-'} Back to world
+        </button>
+
+        <button
+          onClick={() => {
+            localStorage.clear();
+            window.location.reload();
+          }}
+          className="mb-4 text-orange-400 hover:text-orange-300 font-dm-mono text-xs transition-colors flex items-center gap-2 opacity-50 hover:opacity-100"
+        >
+          🗑️ Clear cache & reload
         </button>
 
         <div className="mb-12">
@@ -253,7 +312,7 @@ export default function StatsPage() {
             <h2 className="text-3xl mb-6">{'>'} WEEKLY PATTERN</h2>
             <div className="space-y-2">
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => {
-                const activity = Math.floor(Math.random() * 100);
+                const activity = weeklyActivity[idx];
                 return (
                   <div key={day} className="flex items-center gap-3">
                     <span className="text-sm font-dm-mono w-8">{day}</span>
@@ -292,7 +351,7 @@ export default function StatsPage() {
               <div>
                 <p className="text-slate-400 text-sm mb-1">Most Active Day</p>
                 <p className="font-dm-mono text-xl text-white">
-                  {['Monday', 'Wednesday', 'Friday', 'Thursday'][Math.floor(Math.random() * 4)]}
+                  {mostActiveDay}
                 </p>
               </div>
               <div>
@@ -308,14 +367,13 @@ export default function StatsPage() {
           <BentoItem>
             <h2 className="text-3xl mb-6">{'>'} HEAT MAP</h2>
             <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: 35 }).map((_, idx) => {
-                const intensity = Math.random();
+              {heatMapData.map((intensity, idx) => {
                 return (
                   <div
                     key={idx}
                     className="aspect-square rounded"
                     style={{
-                      backgroundColor: intensity > 0.7 ? biomeInfo.color : intensity > 0.4 ? `${biomeInfo.color}66` : `${biomeInfo.color}22`,
+                      backgroundColor: intensity > 0.7 ? biomeInfo.color : intensity > 0.3 ? `${biomeInfo.color}66` : intensity > 0 ? `${biomeInfo.color}33` : `${biomeInfo.color}11`,
                     }}
                   />
                 );
