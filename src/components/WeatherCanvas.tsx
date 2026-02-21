@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { World } from '@/lib/engine/World';
 import { SkyLayer } from '@/lib/engine/SkyLayer';
 import { MountainLayer } from '@/lib/engine/MountainLayer';
@@ -10,21 +11,27 @@ import { TreeLayer } from '@/lib/engine/TreeLayer';
 import { StructureLayer } from '@/lib/engine/StructureLayer';
 import { WeatherSystem } from '@/lib/engine/WeatherSystem';
 import { FireflySystem } from '@/lib/engine/FireflySystem';
+import { SignLayer } from '@/lib/engine/SignLayer';
 import { WeatherState, CommitData } from '@/lib/engine/types';
 
 interface WeatherCanvasProps {
     weather: WeatherState | null;
     className?: string;
-    isZoomedOut: boolean;
+    isZoomedOut?: boolean;
     seed?: number;
-
+    isDemo?: boolean;
+    username?: string;
+    onWeatherChange?: (weather: WeatherState) => void;
 }
 
-export default function WeatherCanvas({ weather, className, isZoomedOut }: WeatherCanvasProps) {
+export default function WeatherCanvas({ weather, className, isZoomedOut = false, isDemo = false, username }: WeatherCanvasProps) {
+    const router = useRouter();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const worldRef = useRef<World | null>(null);
     const fireflySystemRef = useRef<FireflySystem | null>(null);
+    const signLayerRef = useRef<SignLayer | null>(null);
     const [hoveredCommit, setHoveredCommit] = useState<{ commit: CommitData, x: number, y: number } | null>(null);
+    const [hoveredSign, setHoveredSign] = useState(false);
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -39,12 +46,32 @@ export default function WeatherCanvas({ weather, className, isZoomedOut }: Weath
         const structures = new StructureLayer();
         const weatherSys = new WeatherSystem();
         const fireflies = new FireflySystem();
+        const sign = new SignLayer();
 
         fireflySystemRef.current = fireflies;
+        signLayerRef.current = sign;
+
+        if (isDemo) {
+            sign.setDemoMode(true);
+        }
+
+        // Set up sign click handler
+        sign.setClickCallback(() => {
+            if (isDemo) {
+                // Demo mode - go to demo stats
+                const path = window.location.pathname;
+                if (!path.endsWith('/stats')) {
+                    router.push(`${path}/stats`);
+                }
+            } else if (username) {
+                // Real user - navigate to stats
+                router.push(`/${username}/stats`);
+            }
+        });
 
         // Layers ordered back to front:
         // 1. Sky → 2. Mountains → 3. Water → 4. Weather Particles
-        // 5. Terrain → 6. Structures → 7. Trees → 8. Firefly Columns
+        // 5. Terrain → 6. Structures → 7. Trees → 8. Sign → 9. Firefly Columns
         world.addLayer(sky);
         world.addLayer(mountains);
         world.addLayer(water);
@@ -52,6 +79,7 @@ export default function WeatherCanvas({ weather, className, isZoomedOut }: Weath
         world.addLayer(terrain);
         world.addLayer(structures);
         world.addLayer(trees);
+        world.addLayer(sign);
         world.addLayer(fireflies);
 
         world.start();
@@ -60,7 +88,7 @@ export default function WeatherCanvas({ weather, className, isZoomedOut }: Weath
         return () => {
             world.destroy();
         };
-    }, []);
+    }, [isDemo, username, router]);
 
     useEffect(() => {
         if (worldRef.current && weather) {
@@ -72,47 +100,55 @@ export default function WeatherCanvas({ weather, className, isZoomedOut }: Weath
     // Zoom is requested as CSS transform: "Zoom = CSS transform on the canvas element"
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (!fireflySystemRef.current || !canvasRef.current) return;
+        if (!canvasRef.current) return;
 
         const rect = canvasRef.current.getBoundingClientRect();
-
-        // We need to account for DPR if the system uses it.
-        // World.ts handles DPR by scaling context, but logical coords might be different.
-        // checkHit uses logical coords (width/height passed to resize).
-        // In World.ts: this.canvas.width = displayWidth * dpr.
-        // resize(displayWidth, displayHeight).
-        // So layers use displayWidth/Height (CSS pixels).
-        // So we just need e.clientX relative to rect. No DPR scaling needed for logic check.
-
-        // Wait, I scaled ctx by dpr. 
-        // If I draw at 100,100 logical, it draws at 200,200 physical on 2x screen.
-        // Layers store logical coordinates (0 to displayWidth).
-        // So mouse event (CSS pixels) should match logical coords directly.
-
         const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
 
-        const hit = fireflySystemRef.current.checkHit(mouseX);
+        // Check sign hover first
+        if (signLayerRef.current) {
+            const signHover = signLayerRef.current.checkHover(mouseX, mouseY);
+            setHoveredSign(signHover);
+            if (signHover) {
+                canvasRef.current.style.cursor = 'pointer';
+                setHoveredCommit(null);
+                return;
+            }
+        }
 
-        if (hit) {
-            setHoveredCommit({
-                commit: hit,
-                x: e.clientX, // Screen coords for HTML tooltip
-                y: e.clientY
-            });
-            canvasRef.current.style.cursor = 'pointer';
-        } else {
-            setHoveredCommit(null);
-            canvasRef.current.style.cursor = 'default';
+        // Then check firefly hover
+        if (fireflySystemRef.current) {
+            const hit = fireflySystemRef.current.checkHit(mouseX);
+            if (hit) {
+                setHoveredCommit({
+                    commit: hit,
+                    x: e.clientX,
+                    y: e.clientY
+                });
+                canvasRef.current.style.cursor = 'pointer';
+            } else {
+                setHoveredCommit(null);
+                canvasRef.current.style.cursor = 'default';
+            }
         }
     };
 
-    const handleClick = () => {
-        // If clicked on firefly, maybe lock tooltip or open link?
-        // Request: "Clicking a dot reveals a tooltip". 
-        // Hover is usually enough for desktop, click for mobile.
-        // Already handled by state.
-        if (hoveredCommit) {
-            window.open(`https://github.com/${weather?.repoName}/commit/${hoveredCommit.commit.sha}`, '_blank');
+    const handleClick = (e: React.MouseEvent) => {
+        if (!canvasRef.current) return;
+
+        const rect = canvasRef.current.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Check sign click first
+        if (signLayerRef.current && signLayerRef.current.handleClick(mouseX, mouseY)) {
+            return;
+        }
+
+        // Then check firefly click
+        if (hoveredCommit && weather?.repoName) {
+            window.open(`https://github.com/${weather.repoName}/commit/${hoveredCommit.commit.sha}`, '_blank');
         }
     };
 
