@@ -32,7 +32,7 @@ export class WaterLayer extends BaseLayer {
         const assemblyT = Math.max(0, Math.min(1, (this.assemblyTime - 1.8) / 1.0));
         if (assemblyT <= 0) return;
 
-        const waterY = this.height * 0.75;
+        const waterY = this.height * 0.75 + 6 * 16; // Lower by 6 blocks total
         const palette = this.getWaterColors(this.state.mood);
         const cols = Math.ceil(this.width / this.blockSize);
 
@@ -41,12 +41,12 @@ export class WaterLayer extends BaseLayer {
         ctx.globalAlpha = assemblyT;
 
         for (let i = 0; i < cols; i++) {
-            for (let j = 0; j < 3; j++) {
+            for (let j = 0; j < 4; j++) {
                 const x = i * this.blockSize;
                 const y = waterY + j * this.blockSize;
 
-                // Shimmer: subtle sine offset for top row
-                const shimmerOffset = j === 0
+                // Shimmer: subtle sine offset for top row (disable for desert)
+                const shimmerOffset = (j === 0 && this.state.mood !== 'sunny')
                     ? Math.sin(this.time * 2 + i * 0.3) * 2
                     : 0;
 
@@ -65,19 +65,41 @@ export class WaterLayer extends BaseLayer {
             }
         }
 
-        // Surface highlight (animated)
-        ctx.globalAlpha = assemblyT * 0.15;
-        ctx.fillStyle = '#ffffff';
-        for (let i = 0; i < cols; i++) {
-            const shimmer = Math.sin(this.time * 3 + i * 0.5) * 0.5 + 0.5;
-            if (shimmer > 0.7) {
-                ctx.fillRect(
-                    i * this.blockSize,
-                    waterY + Math.sin(this.time * 2 + i * 0.3) * 2,
-                    this.blockSize,
-                    2
-                );
+        // Surface detail
+        if (this.state.mood !== 'sunny') {
+            // Water Shimmer (animated)
+            ctx.globalAlpha = assemblyT * 0.15;
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < cols; i++) {
+                const shimmer = Math.sin(this.time * 3 + i * 0.5) * 0.5 + 0.5;
+                if (shimmer > 0.7) {
+                    ctx.fillRect(
+                        i * this.blockSize,
+                        waterY + Math.sin(this.time * 2 + i * 0.3) * 2,
+                        this.blockSize,
+                        2
+                    );
+                }
             }
+        } else {
+            // Cracked earth for dry riverbed
+            ctx.globalAlpha = assemblyT * 0.5;
+            ctx.strokeStyle = '#8b6b5d'; // Dark brown cracks
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i < cols; i++) {
+                const xOffset = i * this.blockSize;
+                if (i % 2 === 0) {
+                    ctx.moveTo(xOffset + 2, waterY + 4);
+                    ctx.lineTo(xOffset + 8, waterY + 12);
+                    ctx.lineTo(xOffset + 14, waterY + 6);
+                } else {
+                    ctx.moveTo(xOffset + 4, waterY + 14);
+                    ctx.lineTo(xOffset + 10, waterY + 2);
+                    ctx.lineTo(xOffset + 16, waterY + 10);
+                }
+            }
+            ctx.stroke();
         }
 
         ctx.restore();
@@ -86,7 +108,8 @@ export class WaterLayer extends BaseLayer {
     private getWaterColors(mood: WeatherMood): { surface: string; mid: string; deep: string } {
         switch (mood) {
             case 'sunny':
-                return { surface: '#00acc1', mid: '#00838f', deep: '#006064' };
+                // Dry cracked earth riverbed
+                return { surface: '#d4a373', mid: '#cc8e5e', deep: '#a47148' };
             case 'rain':
                 return { surface: '#1565c0', mid: '#0d47a1', deep: '#0a3670' };
             case 'storm':
