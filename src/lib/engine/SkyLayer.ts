@@ -37,14 +37,14 @@ export class SkyLayer extends BaseLayer {
     private getGradientStops(mood: WeatherMood): [number, string][] {
         switch (mood) {
             case 'sunny':
-                // Vibrant desert sunset
+                // Evening sunset over the sea
                 return [
-                    [0.0, '#4a114f'],    // Deep purple top
-                    [0.15, '#7f1b58'],   // Magenta
-                    [0.35, '#c52848'],   // Red-pink
-                    [0.55, '#f5572b'],   // Orange-red
-                    [0.75, '#ff8a12'],   // Golden orange
-                    [1.0, '#ffbb1a'],    // Bright yellow-orange at horizon
+                    [0.0, '#4a235a'],    // Deep purple-black top
+                    [0.15, '#7b3ff2'],   // Purple
+                    [0.3, '#c471ed'],    // Violet pink
+                    [0.5, '#ff6b35'],    // Warm orange
+                    [0.7, '#ffa751'],    // Golden orange
+                    [1.0, '#ffb35c'],    // Warm horizon gold
                 ];
 
             case 'rain':
@@ -120,8 +120,8 @@ export class SkyLayer extends BaseLayer {
 
         switch (mood) {
             case 'sunny':
-                hazeColor = '255, 200, 100';
-                hazeAlpha = 0.15;
+                hazeColor = '255, 140, 80';
+                hazeAlpha = 0.25;
                 break;
             case 'rain':
                 hazeColor = '80, 100, 140';
