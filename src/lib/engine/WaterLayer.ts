@@ -120,7 +120,7 @@ export class WaterLayer extends BaseLayer {
             case 'fog':
                 return { surface: '#546e7a', mid: '#455a64', deep: '#37474f' };
             case 'wind':
-                return { surface: '#00897b', mid: '#00796b', deep: '#00695c' };
+                return { surface: '#42a5f5', mid: '#1e88e5', deep: '#1565c0' };
             default:
                 return { surface: '#1565c0', mid: '#0d47a1', deep: '#0a3670' };
         }
