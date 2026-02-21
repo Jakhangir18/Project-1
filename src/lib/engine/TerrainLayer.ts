@@ -81,18 +81,39 @@ export class TerrainLayer extends BaseLayer {
                 }
 
                 BlockRenderer.drawBlock(ctx, col.x, by, this.blockSize, color);
+
+                // Draw cracks if on the surface of Dead Desert
+                if (blockFromTop === 0 && this.state?.mood === 'sunny') {
+                    ctx.save();
+                    ctx.strokeStyle = '#8b6b5d'; // Dark brown cracks
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath();
+                    const xOffset = col.x;
+                    if (Math.floor(xOffset / this.blockSize) % 2 === 0) {
+                        ctx.moveTo(xOffset + 2, by + 4);
+                        ctx.lineTo(xOffset + 8, by + 12);
+                        ctx.lineTo(xOffset + 14, by + 6);
+                    } else {
+                        ctx.moveTo(xOffset + 4, by + 14);
+                        ctx.lineTo(xOffset + 10, by + 2);
+                        ctx.lineTo(xOffset + 16, by + 10);
+                    }
+                    ctx.stroke();
+                    ctx.restore();
+                }
             }
         });
     }
 
     private getBlockPalette(mood: WeatherMood): { grass: string; dirt: string; stone: string } {
         switch (mood) {
-            case 'sunny':
-                return { grass: '#7cb342', dirt: '#8d6e63', stone: '#6d4c41' };
+            case 'sunny': // Dead Desert
+                return { grass: '#e6c896', dirt: '#b8845a', stone: '#8b6348' }; // Dry sand, scorched earth, desert rock
             case 'rain':
                 return { grass: '#2e7d32', dirt: '#5d4037', stone: '#37474f' };
             case 'storm':
-                return { grass: '#1b5e20', dirt: '#3e2723', stone: '#1a1a2e' };
+                return { grass: '#388e3c', dirt: '#4e342e', stone: '#1a1a2e' };
             case 'snow':
                 return { grass: '#eceff1', dirt: '#b0bec5', stone: '#78909c' };
             case 'fog':
