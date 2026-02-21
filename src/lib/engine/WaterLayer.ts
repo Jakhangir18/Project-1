@@ -101,7 +101,7 @@ export class WaterLayer extends BaseLayer {
                 // Frozen — icy blue, nearly white
                 return { surface: '#b3e5fc', mid: '#81d4fa', deep: '#4fc3f7' };
             case 'fog':
-                return { surface: '#546e7a', mid: '#455a64', deep: '#37474f' };
+                return { surface: '#6b4423', mid: '#5a3a2a', deep: '#4a2c20' }; // Dry dust
             case 'wind':
                 return { surface: '#42a5f5', mid: '#1e88e5', deep: '#1565c0' };
             default:
