@@ -82,27 +82,6 @@ export class TerrainLayer extends BaseLayer {
 
                 BlockRenderer.drawBlock(ctx, col.x, by, this.blockSize, color);
 
-                // Draw cracks if on the surface of Dead Desert
-                if (blockFromTop === 0 && this.state?.mood === 'sunny') {
-                    ctx.save();
-                    ctx.strokeStyle = '#8b6b5d'; // Dark brown cracks
-                    ctx.lineWidth = 1;
-                    ctx.globalAlpha = 0.5;
-                    ctx.beginPath();
-                    const xOffset = col.x;
-                    if (Math.floor(xOffset / this.blockSize) % 2 === 0) {
-                        ctx.moveTo(xOffset + 2, by + 4);
-                        ctx.lineTo(xOffset + 8, by + 12);
-                        ctx.lineTo(xOffset + 14, by + 6);
-                    } else {
-                        ctx.moveTo(xOffset + 4, by + 14);
-                        ctx.lineTo(xOffset + 10, by + 2);
-                        ctx.lineTo(xOffset + 16, by + 10);
-                    }
-                    ctx.stroke();
-                    ctx.restore();
-                }
-
                 // Fallen sakura petals in Spring
                 if (blockFromTop === 0 && this.state?.mood === 'wind') {
                     const colIndex = Math.floor(col.x / this.blockSize);
@@ -128,7 +107,7 @@ export class TerrainLayer extends BaseLayer {
     private getBlockPalette(mood: WeatherMood): { grass: string; dirt: string; stone: string } {
         switch (mood) {
             case 'sunny': // Dead Desert
-                return { grass: '#e6c896', dirt: '#b8845a', stone: '#8b6348' }; // Dry sand, scorched earth, desert rock
+                return { grass: '#f2d59b', dirt: '#d2b27b', stone: '#b89b6a' }; // Beach sand layers
             case 'rain':
                 return { grass: '#2e7d32', dirt: '#5d4037', stone: '#37474f' };
             case 'storm':
