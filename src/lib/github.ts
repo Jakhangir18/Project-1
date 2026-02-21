@@ -1,12 +1,29 @@
-import { CommitData, CommitType, WeatherMood, WeatherState } from './engine/types';
+import { CommitData, CommitType, WeatherMood, WeatherState, Biome } from './engine/types';
 
 const cache: Record<string, WeatherState> = {};
 
 export async function fetchWeather(username: string): Promise<WeatherState> {
     const key = username.toLowerCase().trim();
+    
+    // Check localStorage cache first
+    if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem(`cw_${key}`);
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                // Cache for 1 hour
+                if (Date.now() - parsed.timestamp < 3600000) {
+                    return parsed.data;
+                }
+            } catch {
+                // Invalid cache, proceed to fetch
+            }
+        }
+    }
+    
     if (cache[key]) return cache[key];
 
-    // Step 1: Check user exists
+    // Step 1: Fetch user profile
     const userRes = await fetch(`https://api.github.com/users/${key}`, {
         headers: { 'Accept': 'application/vnd.github.v3+json' }
     });
@@ -15,7 +32,10 @@ export async function fetchWeather(username: string): Promise<WeatherState> {
     if (userRes.status === 403) throw new Error('GitHub rate limit hit. Wait 1 minute and try again.');
     if (!userRes.ok) throw new Error('GitHub API error');
 
-    // Step 2: Fetch public events (gives us commit data per user)
+    const userData = await userRes.json();
+    const publicRepos = userData.public_repos || 0;
+
+    // Step 2: Fetch public events
     const eventsRes = await fetch(
         `https://api.github.com/users/${key}/events/public?per_page=100`,
         { headers: { 'Accept': 'application/vnd.github.v3+json' } }
@@ -25,11 +45,16 @@ export async function fetchWeather(username: string): Promise<WeatherState> {
 
     const events = await eventsRes.json();
 
-    // Step 3: Extract commits from PushEvents only
+    // Step 3: Extract commits from PushEvents
     const commits: CommitData[] = [];
-
+    const activeDays = new Set<string>();
+    
     for (const event of events) {
         if (event.type !== 'PushEvent') continue;
+        
+        const eventDate = new Date(event.created_at).toISOString().split('T')[0];
+        activeDays.add(eventDate);
+        
         for (const c of (event.payload?.commits ?? [])) {
             commits.push({
                 sha: c.sha ?? '',
@@ -41,17 +66,53 @@ export async function fetchWeather(username: string): Promise<WeatherState> {
         }
     }
 
+    const totalCommits = commits.length;
+    const uniqueActiveDays = activeDays.size;
+    const longestStreak = calculateLongestStreak(Array.from(activeDays));
+
+    // Compute commitsByType
+    const commitsByType: Record<CommitType, number> = {
+        feat: 0, fix: 0, refactor: 0, docs: 0, test: 0, other: 0
+    };
+    commits.forEach(c => commitsByType[c.type]++);
+
+    // Calculate score
+    let score = 0;
+    score += Math.min(totalCommits * 2, 40);
+    score += Math.min(uniqueActiveDays * 3, 30);
+    score += Math.min(longestStreak * 5, 20);
+    score += Math.min(publicRepos * 0.5, 10);
+
+    // Determine biome
+    const biome = getBiomeFromScore(score);
+
     const seed = hashUsername(key);
-    const mood = analyzeMood(commits, events.length);
+    const mood = mapBiomeToMood(biome);
 
     const state: WeatherState = {
         repoName: key,
         commits,
         mood,
         seed,
+        biome,
+        score: Math.round(score),
+        totalCommits,
+        uniqueActiveDays,
+        longestStreak,
+        publicRepos,
+        commitsByType,
     };
 
     cache[key] = state;
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(`cw_${key}`, JSON.stringify({
+            data: state,
+            timestamp: Date.now()
+        }));
+    }
+    
     return state;
 }
 
@@ -79,35 +140,43 @@ function classifyCommit(message: string): CommitType {
     return 'other';
 }
 
-function analyzeMood(commits: CommitData[], totalEvents: number): WeatherMood {
-    if (commits.length === 0 && totalEvents < 2) return 'fog';
+function calculateLongestStreak(dates: string[]): number {
+    if (dates.length === 0) return 0;
+    
+    const sorted = dates.sort();
+    let longest = 1;
+    let current = 1;
+    
+    for (let i = 1; i < sorted.length; i++) {
+        const prev = new Date(sorted[i - 1]);
+        const curr = new Date(sorted[i]);
+        const diffDays = Math.floor((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 1) {
+            current++;
+            longest = Math.max(longest, current);
+        } else if (diffDays > 1) {
+            current = 1;
+        }
+    }
+    
+    return longest;
+}
 
-    const total = commits.length;
-    if (total === 0) return 'fog';
+function getBiomeFromScore(score: number): Biome {
+    if (score === 0 || score < 10) return 'DEAD_DESERT';
+    if (score < 25) return 'ICE_TUNDRA';
+    if (score < 45) return 'SUBTROPICS';
+    if (score < 70) return 'SPRING';
+    return 'SUMMER';
+}
 
-    const counts: Record<CommitType, number> = {
-        feat: 0, fix: 0, refactor: 0, docs: 0, test: 0, other: 0
-    };
-    commits.forEach(c => counts[c.type]++);
-
-    const featRatio = counts.feat / total;
-    const fixRatio = counts.fix / total;
-    const testRatio = counts.test / total;
-    const refactorRatio = counts.refactor / total;
-
-    if (total > 60) return 'storm';
-    if (testRatio > 0.30) return 'snow';
-    if (featRatio > 0.40) return 'sunny';
-    if (fixRatio > 0.35) return 'rain';
-    if (refactorRatio > 0.25) return 'wind';
-    if (total < 5) return 'fog';
-
-    const maxType = (Object.keys(counts) as CommitType[])
-        .reduce((a, b) => counts[a] > counts[b] ? a : b);
-
-    const map: Record<CommitType, WeatherMood> = {
-        feat: 'sunny', fix: 'rain', refactor: 'wind',
-        docs: 'fog', test: 'snow', other: 'storm',
-    };
-    return map[maxType];
+function mapBiomeToMood(biome: Biome): WeatherMood {
+    switch (biome) {
+        case 'DEAD_DESERT': return 'storm'; // Dusty, harsh, lifeless
+        case 'ICE_TUNDRA': return 'snow';
+        case 'SUBTROPICS': return 'rain';
+        case 'SPRING': return 'wind';
+        case 'SUMMER': return 'sunny';
+    }
 }
