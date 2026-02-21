@@ -33,11 +33,7 @@ export class MountainLayer extends BaseLayer {
 
     private generateMountains(width: number, seedStr: string) {
         this.ranges = [];
-        if (this.state && this.state.mood === 'sunny') {
-            this.generatePyramids(width, seedStr);
-        } else {
-            this.generateNormalMountains(width, seedStr);
-        }
+        this.generateNormalMountains(width, seedStr);
     }
 
     private generateNormalMountains(width: number, seedStr: string) {
@@ -257,9 +253,9 @@ export class MountainLayer extends BaseLayer {
         switch (mood) {
             case 'sunny': // Dead Desert
                 return {
-                    top: '#d4a373',   // Sand/orange (sandstone top)
-                    mid: '#cc8e5e',   // Darker orange sand
-                    base: '#a47148',  // Brown rock
+                    top: '#e8d7a8',   // Sunlit sand top
+                    mid: '#c2b28a',   // Coastal cliff midtone
+                    base: '#8d8b86',  // Rocky base
                 };
             case 'rain':
                 return {
