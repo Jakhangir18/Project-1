@@ -31,16 +31,26 @@ export class SkyLayer extends BaseLayer {
 
     private getGradientStops(mood: WeatherMood): [number, string][] {
         switch (mood) {
-            case 'sunny':
-                // Warm sunset: peach → coral → deep orange → warm horizon
+            case 'storm':
+                // Desert storm: purple-pink-orange gradient (like the image)
                 return [
-                    [0.0, '#1a0a2e'],    // Deep purple-black top
-                    [0.15, '#3d1752'],   // Purple
-                    [0.35, '#c2185b'],   // Rose
-                    [0.55, '#e65100'],   // Deep orange
-                    [0.75, '#ff8f00'],   // Amber
-                    [0.90, '#ffcc02'],   // Golden horizon
-                    [1.0, '#fff8e1'],    // Warm white ground
+                    [0.0, '#4a0e4e'],    // Deep purple top
+                    [0.2, '#6b1f5c'],    // Purple-magenta
+                    [0.35, '#8b2e66'],   // Magenta
+                    [0.5, '#c2185b'],    // Red-pink
+                    [0.65, '#d84315'],   // Orange-red
+                    [0.8, '#f4511e'],    // Bright orange
+                    [1.0, '#ff6f00'],    // Golden orange at horizon
+                ];
+
+            case 'sunny':
+                // Vibrant summer day
+                return [
+                    [0.0, '#1e88e5'],    // Bright blue top
+                    [0.3, '#42a5f5'],    // Sky blue
+                    [0.6, '#64b5f6'],    // Light blue
+                    [0.8, '#90caf9'],    // Pale blue
+                    [1.0, '#bbdefb'],    // Near white at horizon
                 ];
 
             case 'rain':
@@ -155,11 +165,49 @@ export class SkyLayer extends BaseLayer {
         if (mood === 'sunny') {
             this.drawSunRays(ctx);
         }
+
+        // Sun for storm (desert) mood
+        if (mood === 'storm') {
+            this.drawDesertSun(ctx);
+        }
+    }
+
+    private drawDesertSun(ctx: CanvasRenderingContext2D) {
+        // Large bright sun in the sky (like the image)
+        const cx = this.width * 0.5;
+        const cy = this.height * 0.15;
+        const radius = 60;
+
+        // Outer glow
+        const glow = ctx.createRadialGradient(cx, cy, radius * 0.5, cx, cy, radius * 2);
+        glow.addColorStop(0, 'rgba(255, 220, 100, 0.4)');
+        glow.addColorStop(0.5, 'rgba(255, 200, 80, 0.2)');
+        glow.addColorStop(1, 'rgba(255, 180, 60, 0)');
+        
+        ctx.fillStyle = glow;
+        ctx.fillRect(cx - radius * 2, cy - radius * 2, radius * 4, radius * 4);
+
+        // Main sun body
+        const sunGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        sunGradient.addColorStop(0, '#fffacd');    // Light yellow center
+        sunGradient.addColorStop(0.6, '#ffd54f');  // Golden
+        sunGradient.addColorStop(1, '#ffb300');    // Orange edge
+
+        ctx.fillStyle = sunGradient;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bright highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.beginPath();
+        ctx.arc(cx - 15, cy - 15, 20, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     private drawSunRays(ctx: CanvasRenderingContext2D) {
         const cx = this.width * 0.45;
-        const cy = this.height * 0.2;
+        const cy = this.height * 0.25;
 
         ctx.save();
         ctx.globalAlpha = 0.08;
@@ -167,18 +215,18 @@ export class SkyLayer extends BaseLayer {
         // Draw diagonal rays
         for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 0.6 - Math.PI * 0.1;
-            const length = this.height * 1.2;
+            const length = this.height * 1.5;
 
             ctx.fillStyle = '#ffcc00';
             ctx.beginPath();
             ctx.moveTo(cx, cy);
             ctx.lineTo(
-                cx + Math.cos(angle - 0.03) * length,
-                cy + Math.sin(angle - 0.03) * length
+                cx + Math.cos(angle - 0.04) * length,
+                cy + Math.sin(angle - 0.04) * length
             );
             ctx.lineTo(
-                cx + Math.cos(angle + 0.03) * length,
-                cy + Math.sin(angle + 0.03) * length
+                cx + Math.cos(angle + 0.04) * length,
+                cy + Math.sin(angle + 0.04) * length
             );
             ctx.closePath();
             ctx.fill();
