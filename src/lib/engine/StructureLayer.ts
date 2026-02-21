@@ -8,6 +8,7 @@ interface House {
     wallHeight: number; // in blocks
     delay: number;
     hasChimney: boolean;
+    kind?: 'house' | 'beach';
 }
 
 /**
@@ -37,9 +38,28 @@ export class StructureLayer extends BaseLayer {
         this.houses = [];
         if (!this.width || !this.state) return;
 
-        // Only rain/storm/snow get houses
+        // Only rain/storm/snow get houses, sunny gets beach props
         const mood = this.state.mood;
-        if (mood !== 'rain' && mood !== 'storm' && mood !== 'snow') return;
+        if (mood !== 'rain' && mood !== 'storm' && mood !== 'snow' && mood !== 'sunny') return;
+
+        if (mood === 'sunny') {
+            const count = 3 + Math.floor(Math.random() * 2);
+
+            for (let i = 0; i < count; i++) {
+                const x = 80 + Math.random() * (this.width - 160);
+                const gridX = Math.floor(x / this.blockSize) * this.blockSize;
+
+                this.houses.push({
+                    x: gridX,
+                    width: 3,
+                    wallHeight: 1,
+                    delay: 2.4 + Math.random() * 1.0,
+                    hasChimney: false,
+                    kind: 'beach',
+                });
+            }
+            return;
+        }
 
         const count = 2 + Math.floor(Math.random() * 2);
 
@@ -53,6 +73,7 @@ export class StructureLayer extends BaseLayer {
                 wallHeight: 3 + Math.floor(Math.random() * 2), // 3-4 blocks tall
                 delay: 2.5 + Math.random() * 1.0,
                 hasChimney: Math.random() > 0.5,
+                kind: 'house',
             });
         }
     }
@@ -83,6 +104,12 @@ export class StructureLayer extends BaseLayer {
             ctx.translate(centerX, groundY);
             ctx.scale(scale, scale);
             ctx.translate(-centerX, -groundY);
+
+            if (house.kind === 'beach') {
+                this.drawBeachLounger(ctx, house, groundY, bs, palette);
+                ctx.restore();
+                return;
+            }
 
             // Walls
             for (let row = 0; row < house.wallHeight; row++) {
@@ -136,6 +163,51 @@ export class StructureLayer extends BaseLayer {
         });
     }
 
+    private drawBeachLounger(
+        ctx: CanvasRenderingContext2D,
+        house: House,
+        groundY: number,
+        bs: number,
+        palette: ReturnType<StructureLayer['getHousePalette']>
+    ) {
+        const x = house.x;
+
+        // Tent pole (center vertical)
+        ctx.fillStyle = palette.chimney;
+        ctx.fillRect(x + bs * 1.3, groundY - bs * 1.8, bs * 0.15, bs * 1.8);
+
+        // Tent fabric (triangle left)
+        ctx.fillStyle = palette.windowGlow;
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.moveTo(x + bs * 0.3, groundY);
+        ctx.lineTo(x + bs * 1.3, groundY - bs * 1.8);
+        ctx.lineTo(x + bs * 1.3, groundY);
+        ctx.closePath();
+        ctx.fill();
+
+        // Tent fabric (triangle right)
+        ctx.fillStyle = palette.roof;
+        ctx.globalAlpha = 0.75;
+        ctx.beginPath();
+        ctx.moveTo(x + bs * 1.3, groundY - bs * 1.8);
+        ctx.lineTo(x + bs * 2.35, groundY);
+        ctx.lineTo(x + bs * 1.3, groundY);
+        ctx.closePath();
+        ctx.fill();
+
+        // Tent entrance
+        ctx.strokeStyle = palette.wall;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(x + bs * 1.15, groundY);
+        ctx.lineTo(x + bs * 1.45, groundY);
+        ctx.stroke();
+
+        ctx.globalAlpha = 1;
+    }
+
     private getHousePalette(mood: WeatherMood) {
         switch (mood) {
             case 'rain':
@@ -161,6 +233,14 @@ export class StructureLayer extends BaseLayer {
                     door: '#5d4037',
                     windowGlow: 'rgba(255, 200, 50, 0.8)',
                     chimney: '#757575',
+                };
+            case 'sunny':
+                return {
+                    wall: '#8d6e63',
+                    roof: '#ff7043',
+                    door: '#5d4037',
+                    windowGlow: '#ffcc80',
+                    chimney: '#6d4c41',
                 };
             default:
                 return {
