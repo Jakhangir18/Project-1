@@ -33,6 +33,14 @@ export class MountainLayer extends BaseLayer {
 
     private generateMountains(width: number, seedStr: string) {
         this.ranges = [];
+        if (this.state && this.state.mood === 'sunny') {
+            this.generatePyramids(width, seedStr);
+        } else {
+            this.generateNormalMountains(width, seedStr);
+        }
+    }
+
+    private generateNormalMountains(width: number, seedStr: string) {
         const seed = seedStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
         const cols = Math.ceil(width / this.blockSize);
 
@@ -92,6 +100,87 @@ export class MountainLayer extends BaseLayer {
 
         this.ranges = [
             { blocks: bgBlocks, scale: 0.7, alphaMultiplier: 0.5 },
+            { blocks: fgBlocks, scale: 1.0, alphaMultiplier: 1.0 },
+        ];
+    }
+
+    private generatePyramids(width: number, seedStr: string) {
+        const seed = seedStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const cols = Math.ceil(width / this.blockSize);
+
+        // Helper to generate a single pyramid in a block array
+        const createPyramid = (centerX: number, baseWidth: number, baseHeightOffset: number, delayBase: number, targetBlocks: MountainBlock[]) => {
+            const centerCol = Math.floor(centerX / this.blockSize);
+            const halfWidth = Math.floor(baseWidth / 2);
+
+            for (let i = -halfWidth; i <= halfWidth; i++) {
+                const col = centerCol + i;
+                if (col < 0 || col >= cols) continue;
+
+                // Pyramid shape: height drops by 1 for each column away from center (stepped)
+                const distFromCenter = Math.abs(i);
+                if (distFromCenter >= halfWidth) continue;
+
+                const heightInBlocks = halfWidth - distFromCenter + baseHeightOffset;
+
+                targetBlocks.push({
+                    x: col * this.blockSize,
+                    y: this.height - heightInBlocks * this.blockSize,
+                    height: heightInBlocks,
+                    delay: delayBase + distFromCenter * 0.1,
+                    colorOffset: 0
+                });
+            }
+        };
+
+        // Background Pyramids (smaller, less tall)
+        const bgBlocks: MountainBlock[] = [];
+
+        let cx = width * 0.2;
+        createPyramid(cx, 16, 4, 1.0, bgBlocks);
+
+        cx = width * 0.75;
+        createPyramid(cx, 24, 6, 1.2, bgBlocks);
+
+        // Fill background gaps with low "sand dunes" for continuity
+        for (let i = 0; i < cols; i++) {
+            if (!bgBlocks.find(b => b.x === i * this.blockSize)) {
+                bgBlocks.push({
+                    x: i * this.blockSize,
+                    y: this.height - 3 * this.blockSize,
+                    height: 3,
+                    delay: 1.5,
+                    colorOffset: 0
+                });
+            }
+        }
+
+        // Foreground Pyramids (larger)
+        const fgBlocks: MountainBlock[] = [];
+
+        cx = width * 0.1;
+        createPyramid(cx, 26, 3, 1.5, fgBlocks);
+
+        cx = width * 0.55;
+        createPyramid(cx, 34, 5, 1.8, fgBlocks);
+
+        cx = width * 0.9;
+        createPyramid(cx, 20, 2, 2.0, fgBlocks);
+
+        for (let i = 0; i < cols; i++) {
+            if (!fgBlocks.find(b => b.x === i * this.blockSize)) {
+                fgBlocks.push({
+                    x: i * this.blockSize,
+                    y: this.height - 2 * this.blockSize,
+                    height: 2,
+                    delay: 2.2,
+                    colorOffset: 0
+                });
+            }
+        }
+
+        this.ranges = [
+            { blocks: bgBlocks, scale: 0.7, alphaMultiplier: 0.6 },
             { blocks: fgBlocks, scale: 1.0, alphaMultiplier: 1.0 },
         ];
     }
@@ -166,11 +255,11 @@ export class MountainLayer extends BaseLayer {
 
     private getPalette(mood: WeatherMood): { top: string; mid: string; base: string } {
         switch (mood) {
-            case 'sunny':
+            case 'sunny': // Dead Desert
                 return {
-                    top: '#8d6e63',   // Warm brown (sandstone top)
-                    mid: '#6d4c41',   // Dark brown
-                    base: '#4e342e',  // Deep brown stone
+                    top: '#d4a373',   // Sand/orange (sandstone top)
+                    mid: '#cc8e5e',   // Darker orange sand
+                    base: '#a47148',  // Brown rock
                 };
             case 'rain':
                 return {
