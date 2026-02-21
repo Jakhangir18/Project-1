@@ -31,9 +31,13 @@ export class MountainLayer extends BaseLayer {
         return x - Math.floor(x);
     }
 
-    private generateMountains(width: number, seedStr: string) {
+    private generateMountains(width: number, seedStr: string, mood?: WeatherMood) {
         this.ranges = [];
-        this.generateNormalMountains(width, seedStr);
+        if (mood === 'fog') {
+            this.generatePyramids(width, seedStr);
+        } else {
+            this.generateNormalMountains(width, seedStr);
+        }
     }
 
     private generateNormalMountains(width: number, seedStr: string) {
@@ -184,7 +188,7 @@ export class MountainLayer extends BaseLayer {
     resize(width: number, height: number) {
         super.resize(width, height);
         if (this.state) {
-            this.generateMountains(width, this.state.repoName);
+            this.generateMountains(width, this.state.repoName, this.state.mood);
         }
     }
 
@@ -194,7 +198,7 @@ export class MountainLayer extends BaseLayer {
         super.setWeather(state);
 
         if (oldRepo !== state.repoName || oldMood !== state.mood || this.ranges.length === 0) {
-            this.generateMountains(this.width, state.repoName);
+            this.generateMountains(this.width, state.repoName, state.mood);
             this.time = 0;
         }
     }
@@ -275,11 +279,11 @@ export class MountainLayer extends BaseLayer {
                     mid: '#b0bec5',   // Light grey
                     base: '#78909c',  // Grey stone
                 };
-            case 'fog':
+            case 'fog': // Dead Desert Pyramids
                 return {
-                    top: '#78909c',
-                    mid: '#546e7a',
-                    base: '#455a64',
+                    top: '#e8cb9b',      // Sandy yellow top
+                    mid: '#d2b48c',      // Tan stone midtone
+                    base: '#a67b5b',     // Dark sand base
                 };
             case 'wind':
                 return {
