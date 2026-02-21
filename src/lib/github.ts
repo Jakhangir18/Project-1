@@ -35,46 +35,61 @@ export async function fetchWeather(username: string): Promise<WeatherState> {
     const userData = await userRes.json();
     const publicRepos = userData.public_repos || 0;
 
-    // Step 2: Fetch public events
-    const eventsRes = await fetch(
-        `https://api.github.com/users/${key}/events/public?per_page=100`,
+    // Step 2: Fetch repositories to get all commits
+    const reposRes = await fetch(
+        `https://api.github.com/users/${key}/repos?per_page=100&sort=updated`,
         { headers: { 'Accept': 'application/vnd.github.v3+json' } }
     );
 
-    if (!eventsRes.ok) throw new Error('Could not fetch events');
+    if (!reposRes.ok) throw new Error('Could not fetch repositories');
 
-    const events = await eventsRes.json();
-
-    // Step 3: Extract commits from PushEvents
+    const repos = await reposRes.json();
+    
+    // Step 3: Fetch recent commits from top repositories
     const commits: CommitData[] = [];
     const activeDays = new Set<string>();
+    const commitsByType: Record<CommitType, number> = {
+        feat: 0, fix: 0, refactor: 0, docs: 0, test: 0, other: 0
+    };
     
-    for (const event of events) {
-        if (event.type !== 'PushEvent') continue;
-        
-        const eventDate = new Date(event.created_at).toISOString().split('T')[0];
-        activeDays.add(eventDate);
-        
-        for (const c of (event.payload?.commits ?? [])) {
-            commits.push({
-                sha: c.sha ?? '',
-                message: c.message ?? '',
-                date: event.created_at,
-                type: classifyCommit(c.message ?? ''),
-                author: event.actor?.login ?? username,
-            });
+    // Get commits from user's top 10 most recently updated repos
+    const topRepos = repos.slice(0, 10);
+    
+    for (const repo of topRepos) {
+        try {
+            const commitsRes = await fetch(
+                `https://api.github.com/repos/${repo.owner.login}/${repo.name}/commits?author=${key}&per_page=30`,
+                { headers: { 'Accept': 'application/vnd.github.v3+json' } }
+            );
+            
+            if (!commitsRes.ok) continue;
+            
+            const repoCommits = await commitsRes.json();
+            
+            for (const c of repoCommits) {
+                const commitDate = new Date(c.commit.author.date).toISOString().split('T')[0];
+                activeDays.add(commitDate);
+                
+                const type = classifyCommit(c.commit.message);
+                commitsByType[type]++;
+                
+                commits.push({
+                    sha: c.sha,
+                    message: c.commit.message.split('\n')[0], // First line only
+                    date: c.commit.author.date,
+                    type,
+                    author: c.commit.author.name,
+                });
+            }
+        } catch (err) {
+            // Skip repos we can't access
+            console.warn(`Could not fetch commits from ${repo.name}:`, err);
         }
     }
 
     const totalCommits = commits.length;
     const uniqueActiveDays = activeDays.size;
     const longestStreak = calculateLongestStreak(Array.from(activeDays));
-
-    // Compute commitsByType
-    const commitsByType: Record<CommitType, number> = {
-        feat: 0, fix: 0, refactor: 0, docs: 0, test: 0, other: 0
-    };
-    commits.forEach(c => commitsByType[c.type]++);
 
     // Calculate score
     let score = 0;
