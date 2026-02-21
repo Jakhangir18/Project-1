@@ -45,8 +45,8 @@ export class WaterLayer extends BaseLayer {
                 const x = i * this.blockSize;
                 const y = waterY + j * this.blockSize;
 
-                // Shimmer: subtle sine offset for top row (disable for desert)
-                const shimmerOffset = (j === 0 && this.state.mood !== 'sunny')
+                // Shimmer: subtle sine offset for top row
+                const shimmerOffset = (j === 0)
                     ? Math.sin(this.time * 2 + i * 0.3) * 2
                     : 0;
 
@@ -66,40 +66,23 @@ export class WaterLayer extends BaseLayer {
         }
 
         // Surface detail
-        if (this.state.mood !== 'sunny') {
-            // Water Shimmer (animated)
-            ctx.globalAlpha = assemblyT * 0.15;
-            ctx.fillStyle = '#ffffff';
-            for (let i = 0; i < cols; i++) {
-                const shimmer = Math.sin(this.time * 3 + i * 0.5) * 0.5 + 0.5;
-                if (shimmer > 0.7) {
-                    ctx.fillRect(
-                        i * this.blockSize,
-                        waterY + Math.sin(this.time * 2 + i * 0.3) * 2,
-                        this.blockSize,
-                        2
-                    );
-                }
+        // Water shimmer (animated)
+        ctx.globalAlpha = assemblyT * 0.15;
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < cols; i++) {
+            const shimmer = Math.sin(this.time * 3 + i * 0.5) * 0.5 + 0.5;
+            if (shimmer > 0.7) {
+                ctx.fillRect(
+                    i * this.blockSize,
+                    waterY + Math.sin(this.time * 2 + i * 0.3) * 2,
+                    this.blockSize,
+                    2
+                );
             }
-        } else {
-            // Cracked earth for dry riverbed
-            ctx.globalAlpha = assemblyT * 0.5;
-            ctx.strokeStyle = '#8b6b5d'; // Dark brown cracks
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            for (let i = 0; i < cols; i++) {
-                const xOffset = i * this.blockSize;
-                if (i % 2 === 0) {
-                    ctx.moveTo(xOffset + 2, waterY + 4);
-                    ctx.lineTo(xOffset + 8, waterY + 12);
-                    ctx.lineTo(xOffset + 14, waterY + 6);
-                } else {
-                    ctx.moveTo(xOffset + 4, waterY + 14);
-                    ctx.lineTo(xOffset + 10, waterY + 2);
-                    ctx.lineTo(xOffset + 16, waterY + 10);
-                }
-            }
-            ctx.stroke();
+        }
+
+        if (this.state.mood === 'sunny') {
+            this.drawShips(ctx, waterY, assemblyT);
         }
 
         ctx.restore();
@@ -108,8 +91,8 @@ export class WaterLayer extends BaseLayer {
     private getWaterColors(mood: WeatherMood): { surface: string; mid: string; deep: string } {
         switch (mood) {
             case 'sunny':
-                // Dry cracked earth riverbed
-                return { surface: '#d4a373', mid: '#cc8e5e', deep: '#a47148' };
+                // Summer sea
+                return { surface: '#4fc3f7', mid: '#29b6f6', deep: '#0288d1' };
             case 'rain':
                 return { surface: '#1565c0', mid: '#0d47a1', deep: '#0a3670' };
             case 'storm':
@@ -124,5 +107,41 @@ export class WaterLayer extends BaseLayer {
             default:
                 return { surface: '#1565c0', mid: '#0d47a1', deep: '#0a3670' };
         }
+    }
+
+    private drawShips(ctx: CanvasRenderingContext2D, waterY: number, assemblyT: number) {
+        const ships = [
+            { anchor: 0.22, bob: 0.7, scale: 1.0 },
+            { anchor: 0.58, bob: 0.9, scale: 1.2 },
+            { anchor: 0.82, bob: 0.6, scale: 0.85 },
+        ];
+
+        ctx.save();
+        ctx.globalAlpha = assemblyT * 0.9;
+
+        ships.forEach((ship, i) => {
+            const bs = this.blockSize * ship.scale;
+            const x = this.width * ship.anchor + Math.sin(this.time * 0.2 + i) * 18;
+            const y = waterY + bs * 0.5 - bs * (0.8 + i * 0.1) + Math.sin(this.time * 1.8 + i) * ship.bob;
+
+            // Hull
+            ctx.fillStyle = '#6d4c41';
+            ctx.fillRect(x, y, bs * 3.4, bs * 0.7);
+            ctx.fillRect(x + bs * 0.4, y - bs * 0.35, bs * 2.6, bs * 0.35);
+
+            // Mast
+            ctx.fillStyle = '#8d6e63';
+            ctx.fillRect(x + bs * 1.6, y - bs * 2, bs * 0.2, bs * 2);
+
+            // Sail
+            ctx.fillStyle = '#fff8e1';
+            ctx.fillRect(x + bs * 1.8, y - bs * 1.9, bs * 1.1, bs * 1.2);
+
+            // Flag accent
+            ctx.fillStyle = '#ffb74d';
+            ctx.fillRect(x + bs * 1.8, y - bs * 2.05, bs * 0.45, bs * 0.22);
+        });
+
+        ctx.restore();
     }
 }
