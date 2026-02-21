@@ -4,10 +4,12 @@ import { WeatherMood, WeatherState } from './types';
 
 interface VoxelTree {
     x: number;
-    type: 'oak' | 'dark_oak' | 'spruce';
+    type: 'oak' | 'dark_oak' | 'spruce' | 'cactus';
     size: number;      // 0.7 to 1.3 for variety
     delay: number;
     depth: number;     // 0 = foreground, 1 = background (affects size)
+    hasLeftArm?: boolean;
+    hasRightArm?: boolean;
 }
 
 /**
@@ -43,12 +45,12 @@ export class TreeLayer extends BaseLayer {
         switch (mood) {
             case 'sunny':
                 return {
-                    trunk: '#5d4037',
-                    leaves: '#66bb6a',
-                    leavesLight: '#81c784',
-                    leavesDark: '#43a047',
-                    spruce: '#2e7d32',
-                    spruceLight: '#388e3c',
+                    trunk: '#2e7d32',   // Cactus body
+                    leaves: '#388e3c',  // Cactus highlights
+                    leavesLight: '#4caf50',
+                    leavesDark: '#1b5e20',
+                    spruce: '#000000',  // Unused
+                    spruceLight: '#000000',
                 };
             case 'rain':
                 return {
@@ -106,10 +108,9 @@ export class TreeLayer extends BaseLayer {
                 };
         }
     }
-
     private generateTrees() {
         this.trees = [];
-        if (!this.width) return;
+        if (!this.width || !this.state) return;
 
         const count = 8 + Math.floor(this.width / 150);
 
@@ -117,8 +118,9 @@ export class TreeLayer extends BaseLayer {
             const x = 30 + Math.random() * (this.width - 60);
             const gridX = Math.floor(x / this.blockSize) * this.blockSize;
 
-            let type: 'oak' | 'dark_oak' | 'spruce' = 'oak';
+            let type: 'oak' | 'dark_oak' | 'spruce' | 'cactus' = 'oak';
             if (this.state?.mood === 'snow') type = 'spruce';
+            else if (this.state?.mood === 'sunny') type = 'cactus';
             else if (this.state?.mood === 'storm' || this.state?.mood === 'rain') {
                 type = Math.random() > 0.5 ? 'dark_oak' : 'oak';
             }
@@ -131,6 +133,8 @@ export class TreeLayer extends BaseLayer {
                 size: 0.7 + Math.random() * 0.6,
                 delay: 2.0 + Math.random() * 1.5,
                 depth,
+                hasLeftArm: type === 'cactus' ? Math.random() > 0.3 : undefined,
+                hasRightArm: type === 'cactus' ? Math.random() > 0.3 : undefined,
             });
         }
 
@@ -175,12 +179,39 @@ export class TreeLayer extends BaseLayer {
                 this.drawOak(ctx, tree.x, groundY, bs, palette);
             } else if (tree.type === 'dark_oak') {
                 this.drawDarkOak(ctx, tree.x, groundY, bs, palette);
-            } else {
+            } else if (tree.type === 'spruce') {
                 this.drawSpruce(ctx, tree.x, groundY, bs, palette);
+            } else if (tree.type === 'cactus') {
+                this.drawCactus(ctx, tree, groundY, bs, palette);
             }
 
             ctx.restore();
         });
+    }
+
+    private drawCactus(ctx: CanvasRenderingContext2D, tree: VoxelTree, groundY: number, bs: number, palette: ReturnType<TreeLayer['getTreePalette']>) {
+        const x = tree.x;
+        const y = groundY;
+
+        // Main Body: 1 block wide, 3-5 blocks tall
+        const height = 4;
+        for (let j = 0; j < height; j++) {
+            BlockRenderer.drawBlock(ctx, x, y - (j + 1) * bs, bs, palette.trunk, { topHighlight: j === height - 1 });
+        }
+
+        // Left arm (optional)
+        if (tree.hasLeftArm) {
+            const armY = y - 2 * bs;
+            BlockRenderer.drawBlock(ctx, x - bs, armY, bs, palette.leavesDark); // horizontal
+            BlockRenderer.drawBlock(ctx, x - bs, armY - bs, bs, palette.trunk, { topHighlight: true }); // vertical
+        }
+
+        // Right arm (optional)
+        if (tree.hasRightArm) {
+            const armY = y - 3 * bs;
+            BlockRenderer.drawBlock(ctx, x + bs, armY, bs, palette.leaves); // horizontal
+            BlockRenderer.drawBlock(ctx, x + bs, armY - bs, bs, palette.trunk, { topHighlight: true }); // vertical
+        }
     }
 
     private drawOak(ctx: CanvasRenderingContext2D, x: number, y: number, bs: number, palette: ReturnType<TreeLayer['getTreePalette']>) {
