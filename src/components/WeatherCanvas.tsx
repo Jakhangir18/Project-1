@@ -10,7 +10,6 @@ import { TerrainLayer } from '@/lib/engine/TerrainLayer';
 import { TreeLayer } from '@/lib/engine/TreeLayer';
 import { StructureLayer } from '@/lib/engine/StructureLayer';
 import { WeatherSystem } from '@/lib/engine/WeatherSystem';
-import { FireflySystem } from '@/lib/engine/FireflySystem';
 import { SignLayer } from '@/lib/engine/SignLayer';
 import { WeatherState, CommitData } from '@/lib/engine/types';
 
@@ -28,7 +27,6 @@ export default function WeatherCanvas({ weather, className, isZoomedOut = false,
     const router = useRouter();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const worldRef = useRef<World | null>(null);
-    const fireflySystemRef = useRef<FireflySystem | null>(null);
     const signLayerRef = useRef<SignLayer | null>(null);
     const [hoveredCommit, setHoveredCommit] = useState<{ commit: CommitData, x: number, y: number } | null>(null);
     const [hoveredSign, setHoveredSign] = useState(false);
@@ -45,10 +43,8 @@ export default function WeatherCanvas({ weather, className, isZoomedOut = false,
         const trees = new TreeLayer();
         const structures = new StructureLayer();
         const weatherSys = new WeatherSystem();
-        const fireflies = new FireflySystem();
         const sign = new SignLayer();
 
-        fireflySystemRef.current = fireflies;
         signLayerRef.current = sign;
 
         if (isDemo) {
@@ -71,7 +67,7 @@ export default function WeatherCanvas({ weather, className, isZoomedOut = false,
 
         // Layers ordered back to front:
         // 1. Sky → 2. Mountains → 3. Water → 4. Weather Particles
-        // 5. Terrain → 6. Structures → 7. Trees → 8. Sign → 9. Firefly Columns
+        // 5. Terrain → 6. Structures → 7. Trees → 8. Sign
         world.addLayer(sky);
         world.addLayer(mountains);
         world.addLayer(water);
@@ -80,7 +76,6 @@ export default function WeatherCanvas({ weather, className, isZoomedOut = false,
         world.addLayer(structures);
         world.addLayer(trees);
         world.addLayer(sign);
-        world.addLayer(fireflies);
 
         world.start();
         worldRef.current = world;
@@ -112,26 +107,10 @@ export default function WeatherCanvas({ weather, className, isZoomedOut = false,
             setHoveredSign(signHover);
             if (signHover) {
                 canvasRef.current.style.cursor = 'pointer';
-                setHoveredCommit(null);
                 return;
             }
         }
-
-        // Then check firefly hover
-        if (fireflySystemRef.current) {
-            const hit = fireflySystemRef.current.checkHit(mouseX);
-            if (hit) {
-                setHoveredCommit({
-                    commit: hit,
-                    x: e.clientX,
-                    y: e.clientY
-                });
-                canvasRef.current.style.cursor = 'pointer';
-            } else {
-                setHoveredCommit(null);
-                canvasRef.current.style.cursor = 'default';
-            }
-        }
+        canvasRef.current.style.cursor = 'default';
     };
 
     const handleClick = (e: React.MouseEvent) => {
@@ -144,11 +123,6 @@ export default function WeatherCanvas({ weather, className, isZoomedOut = false,
         // Check sign click first
         if (signLayerRef.current && signLayerRef.current.handleClick(mouseX, mouseY)) {
             return;
-        }
-
-        // Then check firefly click
-        if (hoveredCommit && weather?.repoName) {
-            window.open(`https://github.com/${weather.repoName}/commit/${hoveredCommit.commit.sha}`, '_blank');
         }
     };
 
