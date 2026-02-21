@@ -246,24 +246,25 @@ export class WeatherSystem extends BaseLayer {
         // Square Sun for sunny mood
         if (this.state.mood === 'sunny') {
             const cx = this.width * 0.45;
-            const cy = this.height * 0.12;
-            const size = 80;
+            const cy = this.height * 0.25; // Lower for sunset
+            const size = 100;
 
             // Outer glow
             ctx.save();
-            ctx.globalAlpha = fadeIn * 0.25;
-            ctx.fillStyle = '#ffcc02';
-            ctx.fillRect(cx - size - 15, cy - size - 15, (size + 15) * 2, (size + 15) * 2);
+            ctx.globalAlpha = fadeIn * 0.3;
+            ctx.fillStyle = '#ffb300';
+            ctx.fillRect(cx - size - 20, cy - size - 20, (size + 20) * 2, (size + 20) * 2);
             ctx.restore();
 
             // Main sun block
             ctx.save();
-            ctx.globalAlpha = fadeIn * 0.9;
-            ctx.fillStyle = '#ffe082';
+            ctx.globalAlpha = fadeIn * 0.95;
+            ctx.fillStyle = '#ffd54f';
             ctx.fillRect(cx - size / 2, cy - size / 2, size, size);
-            // Brighter center
-            ctx.fillStyle = '#ffffff';
-            ctx.globalAlpha = fadeIn * 0.4;
+
+            // Brighter center core
+            ctx.fillStyle = '#fff9c4';
+            ctx.globalAlpha = fadeIn * 0.8;
             ctx.fillRect(cx - size / 4, cy - size / 4, size / 2, size / 2);
             ctx.restore();
         }
