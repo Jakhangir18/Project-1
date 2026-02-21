@@ -84,7 +84,7 @@ export default function DemoBiomePage() {
 
     // Create demo weather state for this biome
     const demoWeather: WeatherState = {
-      mood: biomeKey === 'DEAD_DESERT' ? 'sunny' // Use sunny for desert to avoid rain
+      mood: biomeKey === 'DEAD_DESERT' ? 'fog' // Fog for Dead Desert
         : biomeKey === 'ICE_TUNDRA' ? 'snow'
           : biomeKey === 'SUBTROPICS' ? 'rain'
             : biomeKey === 'SPRING' ? 'wind'

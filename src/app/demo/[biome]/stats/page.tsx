@@ -83,7 +83,7 @@ export default function DemoBiomeStatsPage() {
         }
 
         const demoWeather: WeatherState = {
-            mood: biomeKey === 'DEAD_DESERT' ? 'storm'
+            mood: biomeKey === 'DEAD_DESERT' ? 'fog'
                 : biomeKey === 'ICE_TUNDRA' ? 'snow'
                     : biomeKey === 'SUBTROPICS' ? 'rain'
                         : biomeKey === 'SPRING' ? 'wind'
